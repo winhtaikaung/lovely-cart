@@ -4,7 +4,7 @@ import redis, { RedisClient } from "redis";
 import { createServer, Server } from "http";
 import { MQHelper } from "./helper/mq-async-helper";
 import { QMethods } from "./types/event";
-import { IMessage, IUser, ICartItem } from "./types/message";
+import { ICart, IUser, ICartItem } from "./types/message";
 
 const { promisify } = require("util");
 const amqp = require("amqplib/callback_api");
@@ -16,9 +16,11 @@ export class CartService {
   private server: Server;
   private port: string | number;
   private _redisClient: RedisClient;
+  private mqHelper: MQHelper;
 
-  private _getAsyncRedisClient: any;
-  private _setAsyncRedisClient: any;
+  private _getRedisClient: any;
+  private _setRedisClient: any;
+  private _deleteRedisClient: any;
 
   constructor() {
     this._app = express();
@@ -27,9 +29,11 @@ export class CartService {
     this.listen();
 
     this._redisClient = this.createRedisConnection();
+    this.mqHelper = new MQHelper();
     this.listenRabbitMQ();
-    this._getAsyncRedisClient = promisify(this._redisClient.get).bind(this._redisClient);
-    this._setAsyncRedisClient = promisify(this._redisClient.set).bind(this._redisClient);
+    this._getRedisClient = promisify(this._redisClient.get).bind(this._redisClient);
+    this._setRedisClient = promisify(this._redisClient.set).bind(this._redisClient);
+    this._deleteRedisClient = promisify(this._redisClient.del).bind(this._redisClient);
   }
 
   get app(): express.Application {
@@ -48,28 +52,99 @@ export class CartService {
   }
 
   private listenRabbitMQ() {
-    new MQHelper().subscribeMQP(QMethods.CREATE_GROUP, (err, queueName, callBackMessage) => {
-      this._setAsyncRedisClient((JSON.parse(callBackMessage) as IMessage).cartGroupID, callBackMessage);
+    this.mqHelper.subscribeMQP(QMethods.CREATE_GROUP, (err, queueName, callBackMessage) => {
+      this._setRedisClient((JSON.parse(callBackMessage) as ICart).cartGroupID, callBackMessage);
     });
 
-    new MQHelper().subscribeMQP(QMethods.USER_JOIN, async (err, queueName, callBackMessage) => {
+    this.mqHelper.subscribeMQP(QMethods.USER_JOIN, async (err, queueName, callBackMessage) => {
       let user = JSON.parse(callBackMessage) as IUser;
       user.user_id = nanoid();
-      let cart = await this._getAsyncRedisClient(user.cartGroupID);
-      cart = JSON.parse(cart) as IMessage;
+      let cart = await this._getRedisClient(user.cartGroupID);
+      cart = JSON.parse(cart) as ICart;
       cart.users.push(user);
-      await this._setAsyncRedisClient(user.cartGroupID, JSON.stringify(cart));
-      new MQHelper().publishMQP(QMethods.ACK_USER_JOIN, JSON.stringify(cart));
+      await this._setRedisClient(user.cartGroupID, JSON.stringify(cart));
+      this.mqHelper.publishMQP(QMethods.ACK_USER_JOIN, JSON.stringify({ data: cart }));
     });
 
-    new MQHelper().subscribeMQP(QMethods.ADD_ITEM, async (err, queueName, callBackMessage) => {
+    this.mqHelper.subscribeMQP(QMethods.ADD_ITEM, async (err, queueName, callBackMessage) => {
       let cartItem = JSON.parse(callBackMessage) as ICartItem;
-
-      let cart = await this._getAsyncRedisClient(cartItem.cartGroupID);
-      cart = JSON.parse(cart) as IMessage;
+      cartItem.item_id = nanoid();
+      let cart = await this._getRedisClient(cartItem.cartGroupID);
+      cart = JSON.parse(cart) as ICart;
       cart.cart_items.push(cartItem);
-      await this._setAsyncRedisClient(cartItem.cartGroupID, JSON.stringify(cart));
-      new MQHelper().publishMQP(QMethods.ACK_ADD_ITEM, JSON.stringify(cart));
+      await this._setRedisClient(cartItem.cartGroupID, JSON.stringify(cart));
+      this.mqHelper.publishMQP(QMethods.ACK_ADD_ITEM, JSON.stringify({ data: cart }));
+    });
+
+    this.mqHelper.subscribeMQP(QMethods.UPDATE_ITEM, async (err, queueName, callBackMessage) => {
+      let cartItem = JSON.parse(callBackMessage) as ICartItem;
+      let cart = await this._getRedisClient(cartItem.cartGroupID);
+      cart = JSON.parse(cart) as ICart;
+      const userExist = cart.cart_items.some((item: ICartItem) => item.user_id === cartItem.user_id);
+
+      if (userExist) {
+        const index = cart.cart_items.findIndex((item: ICartItem) => item.item_id === cartItem.item_id);
+        if (index !== -1) {
+          cart.cart_items[index] = cartItem;
+        }
+      }
+      await this._setRedisClient(cartItem.cartGroupID, JSON.stringify(cart));
+      this.mqHelper.publishMQP(QMethods.ACK_UPDATE_ITEM, JSON.stringify({ data: cart }));
+    });
+
+    this.mqHelper.subscribeMQP(QMethods.REMOVE_ITEM, async (err, queueName, callBackMessage) => {
+      let cartItem = JSON.parse(callBackMessage) as ICartItem;
+      let cart = await this._getRedisClient(cartItem.cartGroupID);
+      cart = JSON.parse(cart) as ICart;
+      const userExist = cart.cart_items.some((item: ICartItem) => item.user_id === cartItem.user_id);
+      cart.cart_items = userExist
+        ? cart.cart_items.filter((item: ICartItem) => item.item_id !== cartItem.item_id)
+        : cart.cart_items;
+      await this._setRedisClient(cartItem.cartGroupID, JSON.stringify(cart));
+      this.mqHelper.publishMQP(QMethods.ACK_REMOVE_ITEM, JSON.stringify({ data: cart }));
+    });
+
+    this.mqHelper.subscribeMQP(QMethods.USER_LEFT, async (err, queueName, callBackMessage) => {
+      let user = JSON.parse(callBackMessage) as IUser;
+      let cart = await this._getRedisClient(user.cartGroupID);
+      cart = JSON.parse(cart) as ICart;
+      const userExist = cart.users.some((item: IUser) => item.user_id === user.user_id && !user.is_admin);
+      cart.users = userExist ? cart.users.filter((item: IUser) => item.user_id !== user.user_id) : cart.users;
+      cart.cart_items = userExist
+        ? cart.cart_items.filter((item: ICartItem) => item.user_id !== user.user_id)
+        : cart.cart_items;
+
+      await this._setRedisClient(user.cartGroupID, JSON.stringify(cart));
+      this.mqHelper.publishMQP(QMethods.ACK_USER_LEFT, JSON.stringify({ data: cart }));
+    });
+
+    this.mqHelper.subscribeMQP(QMethods.USER_LEFT, async (err, queueName, callBackMessage) => {
+      let user = JSON.parse(callBackMessage) as IUser;
+      let cart = await this._getRedisClient(user.cartGroupID);
+      cart = JSON.parse(cart) as ICart;
+      const userExist = cart.users.some((item: IUser) => item.user_id === user.user_id && !user.is_admin);
+      cart.users = userExist ? cart.users.filter((item: IUser) => item.user_id !== user.user_id) : cart.users;
+      cart.cart_items = userExist
+        ? cart.cart_items.filter((item: ICartItem) => item.user_id !== user.user_id)
+        : cart.cart_items;
+
+      await this._setRedisClient(user.cartGroupID, JSON.stringify(cart));
+      this.mqHelper.publishMQP(QMethods.ACK_USER_LEFT, JSON.stringify({ data: cart }));
+    });
+
+    this.mqHelper.subscribeMQP(QMethods.DELETE_GROUP, async (err, queueName, callBackMessage) => {
+      let user = JSON.parse(callBackMessage) as IUser;
+      let cart = await this._getRedisClient(user.cartGroupID);
+      cart = JSON.parse(cart) as ICart;
+      const userExist = cart.users.findIndex((item: IUser) => item.user_id === user.user_id && item.is_admin);
+
+      if (userExist !== -1) {
+        await this._deleteRedisClient(user.cartGroupID);
+        this.mqHelper.publishMQP(
+          QMethods.ACK_DELETE_GROUP,
+          JSON.stringify({ message: "Order group has been Deleted" }),
+        );
+      }
     });
   }
 

@@ -1,4 +1,3 @@
-import { Connection } from "amqplib";
 import axios from "axios";
 import cors from "cors";
 import express from "express";
@@ -7,7 +6,7 @@ import nanoid from "nanoid";
 import socketIo from "socket.io";
 import { CartEvents, QMethods } from "./types/event";
 
-import { IMessage, IUser } from "./types/message";
+import { ICartItem, ICart, IUser, IResponse } from "./types/message";
 import { Method } from "./types/method";
 
 import { MQHelper } from "./helper/mq-async-helper";
@@ -18,6 +17,7 @@ export class GatewayServer {
   private _app: express.Application;
   private server: Server;
   private io: SocketIO.Server;
+  private mqHelper: MQHelper;
   private port: string | number;
 
   constructor() {
@@ -27,7 +27,9 @@ export class GatewayServer {
     this._app.options("*", cors());
     this.server = createServer(this._app);
     this.io = this.initSocket();
+
     this.listen();
+    this.mqHelper = new MQHelper();
     this.listenSocket();
     this.emitSocket();
     this.httpServe();
@@ -41,7 +43,7 @@ export class GatewayServer {
 
   private listen(): void {
     const item: any[] = [];
-    const cartGroups: IMessage[] = [];
+    const cartGroups: ICart[] = [];
 
     this.server.listen(this.port, () => {
       process.stdout.write(`Running server on port ${this.port}\n`);
@@ -53,40 +55,59 @@ export class GatewayServer {
       process.stdout.write(`Websocket Connected client on port ${this.port}\n`);
 
       /* Group Related*/
-      socket.on(CartEvents.CREATE_GROUP, (m: IMessage) => {
+      socket.on(CartEvents.CREATE_GROUP, (m: ICart) => {
         const groupID = nanoid();
         process.stdout.write(`[server](message): Group Created ${groupID}\n`);
 
-        new MQHelper().publishMQP(
+        this.mqHelper.publishMQP(
           QMethods.CREATE_GROUP,
-          JSON.stringify({ cartGroupID: groupID, cart_items: [], users: [] }),
+          JSON.stringify({
+            cartGroupID: groupID,
+            cart_items: [],
+            users: [{ cartGroupID: groupID, user_id: nanoid(), is_admin: true }],
+          }),
         );
+      });
+
+      socket.on(CartEvents.DELETE_GROUP, (m: IUser) => {
+        this.mqHelper.publishMQP(QMethods.DELETE_GROUP, m, (err, msg, content) => {
+          process.stdout.write(`[server](message):  ${content}\n`);
+        });
       });
 
       socket.on(CartEvents.USER_JOIN, (m: IUser) => {
         process.stdout.write(`[server](message): User Joined ${m}\n`);
 
-        new MQHelper().publishMQP(QMethods.USER_JOIN, m, (err, msg, content) => {
+        this.mqHelper.publishMQP(QMethods.USER_JOIN, m, (err, msg, content) => {
           process.stdout.write(`[server](message):  ${content}\n`);
         });
       });
 
-      socket.on(CartEvents.USER_LEFT, (m: IMessage) => {
+      socket.on(CartEvents.USER_LEFT, (m: IUser) => {
         process.stdout.write(`[server](message): User Left \n`);
         // this.io.emit(CartEvents.ACK_USER_LEFT, JSON.stringify({ cartGroupID: groupID, cart_items: [], users: [] }));
+        this.mqHelper.publishMQP(QMethods.USER_LEFT, m, (err, msg, content) => {
+          process.stdout.write(`[server](message):  ${content}\n`);
+        });
       });
 
       /* Item Related */
-      socket.on(CartEvents.ADD_ITEM, (m: IMessage) => {
-        new MQHelper().publishMQP(QMethods.ADD_ITEM, m, (err, msg, content) => {
+      socket.on(CartEvents.ADD_ITEM, (m: ICartItem) => {
+        this.mqHelper.publishMQP(QMethods.ADD_ITEM, m, (err, msg, content) => {
           process.stdout.write(`[server](message):  ${content}\n`);
         });
       });
 
-      socket.on(CartEvents.REMOVE_ITEM, (m: IMessage) => {
-        item.pop();
-        process.stdout.write(`[server](message):Item Removed${item}\n`);
-        this.io.emit(CartEvents.ACK_REMOVE_ITEM, JSON.stringify(item));
+      socket.on(CartEvents.UPDATE_ITEM, (m: ICartItem) => {
+        this.mqHelper.publishMQP(QMethods.UPDATE_ITEM, m, (err, msg, content) => {
+          process.stdout.write(`[server](message):  ${content}\n`);
+        });
+      });
+
+      socket.on(CartEvents.REMOVE_ITEM, (m: ICartItem) => {
+        this.mqHelper.publishMQP(QMethods.REMOVE_ITEM, m, (err, msg, content) => {
+          process.stdout.write(`[server](message):  ${content}\n`);
+        });
       });
 
       socket.on(CartEvents.DISCONNECT, () => {
@@ -96,17 +117,37 @@ export class GatewayServer {
   }
 
   private emitSocket(): void {
-    new MQHelper().subscribeMQP(QMethods.CREATE_GROUP, (err, quename, msg) => {
+    this.mqHelper.subscribeMQP(QMethods.CREATE_GROUP, (err, quename, msg: IResponse) => {
       this.io.emit(CartEvents.ACK_CREATE_GROUP, msg);
     });
 
-    new MQHelper().subscribeMQP(QMethods.ACK_USER_JOIN, (err, msg, content) => {
-      this.io.emit(CartEvents.ACK_USER_JOIN, content);
-      process.stdout.write(`[server](message):  ${content}\n`);
+    this.mqHelper.subscribeMQP(QMethods.ACK_DELETE_GROUP, (err, quename, msg: IResponse) => {
+      this.io.emit(CartEvents.ACK_DELETE_GROUP, msg);
+      process.stdout.write(`[server](message):  ${msg}\n`);
     });
-    new MQHelper().subscribeMQP(QMethods.ACK_ADD_ITEM, (err, msg, content) => {
-      this.io.emit(CartEvents.ACK_ADD_ITEM, content);
-      process.stdout.write(`[server](message):  ${content}\n`);
+
+    this.mqHelper.subscribeMQP(QMethods.ACK_USER_JOIN, (err, quename, msg: IResponse) => {
+      this.io.emit(CartEvents.ACK_USER_JOIN, msg);
+      process.stdout.write(`[server](message):  ${msg}\n`);
+    });
+
+    this.mqHelper.subscribeMQP(QMethods.ACK_USER_LEFT, (err, quename, msg: IResponse) => {
+      this.io.emit(CartEvents.ACK_USER_LEFT, msg);
+      process.stdout.write(`[server](message):  ${msg}\n`);
+    });
+    this.mqHelper.subscribeMQP(QMethods.ACK_ADD_ITEM, (err, quename, msg: IResponse) => {
+      this.io.emit(CartEvents.ACK_ADD_ITEM, msg);
+      process.stdout.write(`[server](message):  ${msg}\n`);
+    });
+
+    this.mqHelper.subscribeMQP(QMethods.ACK_UPDATE_ITEM, (err, quename, msg: IResponse) => {
+      this.io.emit(CartEvents.ACK_UPDATE_ITEM, msg);
+      process.stdout.write(`[server](message):  ${msg}\n`);
+    });
+
+    this.mqHelper.subscribeMQP(QMethods.ACK_REMOVE_ITEM, (err, quename, msg: IResponse) => {
+      this.io.emit(CartEvents.ACK_REMOVE_ITEM, msg);
+      process.stdout.write(`[server](message):  ${msg}\n`);
     });
   }
 
