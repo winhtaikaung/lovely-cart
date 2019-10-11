@@ -6,13 +6,13 @@ import nanoid from "nanoid";
 import socketIo from "socket.io";
 import { CartEvents, QMethods } from "./types/event";
 
-import { ICartItem, ICart, IUser, IResponse } from "./types/message";
+import { ICart, ICartItem, IResponse, IUser } from "./types/message";
 import { Method } from "./types/method";
 
 import { MQHelper } from "./helper/mq-async-helper";
 
 export class GatewayServer {
-  public static readonly PORT: number = 3000;
+  public static readonly PORT: number = 3002;
   // tslint:disable-next-line:variable-name
   private _app: express.Application;
   private server: Server;
@@ -22,7 +22,7 @@ export class GatewayServer {
 
   constructor() {
     this._app = express();
-    this.port = process.env.PORT || 3000;
+    this.port = process.env.PORT || 3002;
     this._app.use(cors());
     this._app.options("*", cors());
     this.server = createServer(this._app);
@@ -42,9 +42,6 @@ export class GatewayServer {
   }
 
   private listen(): void {
-    const item: any[] = [];
-    const cartGroups: ICart[] = [];
-
     this.server.listen(this.port, () => {
       process.stdout.write(`Running server on port ${this.port}\n`);
     });
