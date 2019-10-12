@@ -1,8 +1,8 @@
-import React from 'react';
+import React from 'react'
 
-import { CardTemplateComponent, MenuItem } from './types';
-import { Row, Col } from 'antd';
-import MenuCard from './menu-card';
+import { CardTemplateComponent, MenuItem } from './types'
+import { Row, Col } from 'antd'
+import MenuCard from './menu-card'
 
 const MenuCardTemplate: React.FC<CardTemplateComponent> = ({ menuItems }) => (
   <>
@@ -10,12 +10,12 @@ const MenuCardTemplate: React.FC<CardTemplateComponent> = ({ menuItems }) => (
       {menuItems &&
         menuItems.length !== 0 &&
         menuItems.map((item: MenuItem) => (
-          <Col span={8}>
+          <Col key={item.id} span={8}>
             <MenuCard item={item} />
           </Col>
         ))}
     </Row>
   </>
-);
+)
 
-export default MenuCardTemplate;
+export default MenuCardTemplate

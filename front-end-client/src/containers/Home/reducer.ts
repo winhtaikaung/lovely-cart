@@ -12,7 +12,6 @@ export const initialState: ContainerState = {
 }
 
 function appReducer(state: ContainerState = initialState, action: ContainerActions): ContainerState {
-  console.log(action)
   switch (action.type) {
     case ActionTypes.LOAD_MENU_ITEMS:
       return {

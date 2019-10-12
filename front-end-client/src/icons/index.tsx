@@ -127,8 +127,8 @@ export const IconMealBox: React.FC = () => (
       strokeWidth="1"
       fill="none"
       fillRule="evenodd"
-      stroke-linecap="round"
-      stroke-linejoin="round"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     >
       <g id="meal-boxes" transform="translate(6.000000, 15.000000)" stroke="currentColor">
         <path

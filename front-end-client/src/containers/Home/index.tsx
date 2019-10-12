@@ -9,6 +9,7 @@ import { createStructuredSelector } from 'reselect'
 import { ContainerState } from './types'
 import MenuCardTemplate from '../../components/card-template'
 import { IconDesserts, IconMealBox, IconSides, IconDrinks } from '../../icons'
+import GroupOrderView from '../Cart'
 
 const { TabPane } = Tabs
 const { Sider, Content } = Layout
@@ -82,9 +83,11 @@ const Home: React.FC<ContainerState> = ({ menuItems, loadMenus }) => {
             overflow: 'auto',
             height: '100vh',
             position: 'fixed',
+            background: 'white',
             right: 0,
           }}
         >
+          <GroupOrderView />
           <div className="logo" />
         </Sider>
       </Layout>

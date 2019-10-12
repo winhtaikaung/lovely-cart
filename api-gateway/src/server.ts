@@ -1,4 +1,5 @@
 import axios from "axios";
+import bodyParser from "body-parser";
 import cors from "cors";
 import express from "express";
 import { createServer, Server } from "http";
@@ -42,6 +43,8 @@ export class GatewayServer {
   }
 
   private listen(): void {
+    this._app.use(bodyParser.urlencoded({ extended: false }));
+    this._app.use(bodyParser.json());
     this.server.listen(this.port, () => {
       process.stdout.write(`Running server on port ${this.port}\n`);
     });
@@ -56,14 +59,7 @@ export class GatewayServer {
         const groupID = nanoid();
         process.stdout.write(`[server](message): Group Created ${groupID}\n`);
 
-        this.mqHelper.publishMQP(
-          QMethods.CREATE_GROUP,
-          JSON.stringify({
-            cartGroupID: groupID,
-            cart_items: [],
-            users: [{ cartGroupID: groupID, user_id: nanoid(), is_admin: true }],
-          }),
-        );
+        this.mqHelper.publishMQP(QMethods.CREATE_GROUP, JSON.stringify(m));
       });
 
       socket.on(CartEvents.DELETE_GROUP, (m: IUser) => {
@@ -75,7 +71,7 @@ export class GatewayServer {
       socket.on(CartEvents.USER_JOIN, (m: IUser) => {
         process.stdout.write(`[server](message): User Joined ${m}\n`);
 
-        this.mqHelper.publishMQP(QMethods.USER_JOIN, m, (err, msg, content) => {
+        this.mqHelper.publishMQP(QMethods.USER_JOIN, JSON.stringify(m), (err, msg, content) => {
           process.stdout.write(`[server](message):  ${content}\n`);
         });
       });
@@ -114,18 +110,22 @@ export class GatewayServer {
   }
 
   private emitSocket(): void {
-    this.mqHelper.subscribeMQP(QMethods.CREATE_GROUP, (err, quename, msg: IResponse) => {
-      this.io.emit(CartEvents.ACK_CREATE_GROUP, msg);
-    });
+    // this.mqHelper.subscribeMQP(QMethods.CREATE_GROUP, (err, quename, msg: any) => {
+    //   const cart = JSON.parse(msg) as ICart;
+    //   process.stdout.write(`\n${cart.cartGroupID}\n`);
+    //   this.io.emit(`${CartEvents.ACK_CREATE_GROUP}`, msg);
+    // });
 
     this.mqHelper.subscribeMQP(QMethods.ACK_DELETE_GROUP, (err, quename, msg: IResponse) => {
       this.io.emit(CartEvents.ACK_DELETE_GROUP, msg);
       process.stdout.write(`[server](message):  ${msg}\n`);
     });
 
-    this.mqHelper.subscribeMQP(QMethods.ACK_USER_JOIN, (err, quename, msg: IResponse) => {
-      this.io.emit(CartEvents.ACK_USER_JOIN, msg);
-      process.stdout.write(`[server](message):  ${msg}\n`);
+    this.mqHelper.subscribeMQP(QMethods.ACK_USER_JOIN, (err, quename, msg: any) => {
+      const data = (JSON.parse(msg) as IResponse).data;
+      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_USER_JOIN}-${data ? data.cartGroupID : ""}\n`);
+      this.io.emit(`${CartEvents.ACK_USER_JOIN}-${data ? data.cartGroupID : ""}`, msg);
+      // process.stdout.write(`[server](message):${CartEvents.ACK_USER_JOIN}--${msg}\n`);
     });
 
     this.mqHelper.subscribeMQP(QMethods.ACK_USER_LEFT, (err, quename, msg: IResponse) => {
@@ -155,6 +155,13 @@ export class GatewayServer {
         url: "https://grain.com.sg/menu.json",
       }).then((response: any) => {
         res.status(response.status).send(response.data);
+      });
+    });
+
+    this._app.post("/group", async (req: any, res: any) => {
+      const payload = req.body;
+      await this.mqHelper.publishMQP(QMethods.CREATE_GROUP, JSON.stringify(payload), (err, queueName, callBackmsg) => {
+        res.status(200).send({ data: JSON.parse(callBackmsg) });
       });
     });
   }

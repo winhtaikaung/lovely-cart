@@ -1,7 +1,8 @@
-import { combineReducers } from 'redux';
-import { connectRouter } from 'connected-react-router';
-import history from './utils/history';
-import globalReducer from './containers/Home/reducer';
+import { combineReducers } from 'redux'
+import { connectRouter } from 'connected-react-router'
+import history from './utils/history'
+import globalReducer from './containers/Home/reducer'
+import cartReducer from './containers/Cart/reducer'
 
 // import { reducer as formReducer } from 'redux-form'
 
@@ -13,10 +14,11 @@ export default function createReducer(injectedReducers = {}) {
   const rootReducer = combineReducers({
     router: connectRouter(history),
     global: globalReducer,
-    ...injectedReducers
-  });
+    cart: cartReducer,
+    ...injectedReducers,
+  })
 
   // Wrap the root reducer and return a new root reducer with router state
 
-  return rootReducer;
+  return rootReducer
 }
