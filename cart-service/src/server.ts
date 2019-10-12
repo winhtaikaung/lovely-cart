@@ -4,7 +4,7 @@ import redis, { RedisClient } from "redis";
 import { createServer, Server } from "http";
 import { MQHelper } from "./helper/mq-async-helper";
 import { QMethods } from "./types/event";
-import { ICart, IUser, ICartItem } from "./types/message";
+import { ICartGroup, IUser, ICartItem } from "./types/message";
 
 const { promisify } = require("util");
 const amqp = require("amqplib/callback_api");
@@ -53,13 +53,13 @@ export class CartService {
 
   private listenRabbitMQ() {
     this.mqHelper.subscribeMQP(QMethods.CREATE_GROUP, (err, queueName, callBackMessage) => {
-      this._setRedisClient((JSON.parse(callBackMessage) as ICart).cartGroupID, callBackMessage);
+      this._setRedisClient((JSON.parse(callBackMessage) as ICartGroup).cartGroupID, callBackMessage);
     });
 
     this.mqHelper.subscribeMQP(QMethods.USER_JOIN, async (err, queueName, callBackMessage) => {
       let user = JSON.parse(callBackMessage) as IUser;
       let cart = await this._getRedisClient(user.cartGroupID);
-      cart = JSON.parse(cart) as ICart;
+      cart = JSON.parse(cart) as ICartGroup;
       cart.users.push(user);
       await this._setRedisClient(user.cartGroupID, JSON.stringify(cart));
       this.mqHelper.publishMQP(QMethods.ACK_USER_JOIN, JSON.stringify({ data: cart }));
@@ -69,7 +69,7 @@ export class CartService {
       let cartItem = JSON.parse(callBackMessage) as ICartItem;
       cartItem.item_id = nanoid();
       let cart = await this._getRedisClient(cartItem.cartGroupID);
-      cart = JSON.parse(cart) as ICart;
+      cart = JSON.parse(cart) as ICartGroup;
       cart.cart_items.push(cartItem);
       await this._setRedisClient(cartItem.cartGroupID, JSON.stringify(cart));
       this.mqHelper.publishMQP(QMethods.ACK_ADD_ITEM, JSON.stringify({ data: cart }));
@@ -78,7 +78,7 @@ export class CartService {
     this.mqHelper.subscribeMQP(QMethods.UPDATE_ITEM, async (err, queueName, callBackMessage) => {
       let cartItem = JSON.parse(callBackMessage) as ICartItem;
       let cart = await this._getRedisClient(cartItem.cartGroupID);
-      cart = JSON.parse(cart) as ICart;
+      cart = JSON.parse(cart) as ICartGroup;
       const userExist = cart.cart_items.some((item: ICartItem) => item.user_id === cartItem.user_id);
 
       if (userExist) {
@@ -94,7 +94,7 @@ export class CartService {
     this.mqHelper.subscribeMQP(QMethods.REMOVE_ITEM, async (err, queueName, callBackMessage) => {
       let cartItem = JSON.parse(callBackMessage) as ICartItem;
       let cart = await this._getRedisClient(cartItem.cartGroupID);
-      cart = JSON.parse(cart) as ICart;
+      cart = JSON.parse(cart) as ICartGroup;
       const userExist = cart.cart_items.some((item: ICartItem) => item.user_id === cartItem.user_id);
       cart.cart_items = userExist
         ? cart.cart_items.filter((item: ICartItem) => item.item_id !== cartItem.item_id)
@@ -106,7 +106,7 @@ export class CartService {
     this.mqHelper.subscribeMQP(QMethods.USER_LEFT, async (err, queueName, callBackMessage) => {
       let user = JSON.parse(callBackMessage) as IUser;
       let cart = await this._getRedisClient(user.cartGroupID);
-      cart = JSON.parse(cart) as ICart;
+      cart = JSON.parse(cart) as ICartGroup;
       const userExist = cart.users.some((item: IUser) => item.user_id === user.user_id && !user.is_admin);
       cart.users = userExist ? cart.users.filter((item: IUser) => item.user_id !== user.user_id) : cart.users;
       cart.cart_items = userExist
@@ -120,7 +120,7 @@ export class CartService {
     this.mqHelper.subscribeMQP(QMethods.USER_LEFT, async (err, queueName, callBackMessage) => {
       let user = JSON.parse(callBackMessage) as IUser;
       let cart = await this._getRedisClient(user.cartGroupID);
-      cart = JSON.parse(cart) as ICart;
+      cart = JSON.parse(cart) as ICartGroup;
       const userExist = cart.users.some((item: IUser) => item.user_id === user.user_id && !user.is_admin);
       cart.users = userExist ? cart.users.filter((item: IUser) => item.user_id !== user.user_id) : cart.users;
       cart.cart_items = userExist
@@ -134,7 +134,7 @@ export class CartService {
     this.mqHelper.subscribeMQP(QMethods.DELETE_GROUP, async (err, queueName, callBackMessage) => {
       let user = JSON.parse(callBackMessage) as IUser;
       let cart = await this._getRedisClient(user.cartGroupID);
-      cart = JSON.parse(cart) as ICart;
+      cart = JSON.parse(cart) as ICartGroup;
       const userExist = cart.users.findIndex((item: IUser) => item.user_id === user.user_id && item.is_admin);
 
       if (userExist !== -1) {

@@ -7,7 +7,7 @@ import nanoid from "nanoid";
 import socketIo from "socket.io";
 import { CartEvents, QMethods } from "./types/event";
 
-import { ICart, ICartItem, IResponse, IUser } from "./types/message";
+import { ICartGroup, ICartItem, IResponse, IUser } from "./types/message";
 import { Method } from "./types/method";
 
 import { MQHelper } from "./helper/mq-async-helper";
@@ -55,7 +55,7 @@ export class GatewayServer {
       process.stdout.write(`Websocket Connected client on port ${this.port}\n`);
 
       /* Group Related*/
-      socket.on(CartEvents.CREATE_GROUP, (m: ICart) => {
+      socket.on(CartEvents.CREATE_GROUP, (m: ICartGroup) => {
         const groupID = nanoid();
         process.stdout.write(`[server](message): Group Created ${groupID}\n`);
 
@@ -86,7 +86,7 @@ export class GatewayServer {
 
       /* Item Related */
       socket.on(CartEvents.ADD_ITEM, (m: ICartItem) => {
-        this.mqHelper.publishMQP(QMethods.ADD_ITEM, m, (err, msg, content) => {
+        this.mqHelper.publishMQP(QMethods.ADD_ITEM, JSON.stringify(m), (err, msg, content) => {
           process.stdout.write(`[server](message):  ${content}\n`);
         });
       });
@@ -129,9 +129,9 @@ export class GatewayServer {
 
     this.mqHelper.subscribeMQP(QMethods.ACK_ADD_ITEM, (err, quename, msg: any) => {
       const data = (JSON.parse(msg) as IResponse).data;
-      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_USER_JOIN}-${data ? data.cartGroupID : ""}\n`);
-      this.io.emit(CartEvents.ACK_ADD_ITEM, msg);
-      process.stdout.write(`[server](message):  ${msg}\n`);
+      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_ADD_ITEM}-${data ? data.cartGroupID : ""}\n`);
+      this.io.emit(`${CartEvents.ACK_ADD_ITEM}-${data ? data.cartGroupID : ""}`, msg);
+      // process.stdout.write(`[server](message):  ${msg}\n`);
     });
 
     this.mqHelper.subscribeMQP(QMethods.ACK_UPDATE_ITEM, (err, quename, msg: IResponse) => {

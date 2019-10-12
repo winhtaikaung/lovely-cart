@@ -41,7 +41,6 @@ const reconnect = () => {
 // This is how channel is created
 const createSocketChannel = (socket: any) =>
   eventChannel(emit => {
-    console.log('CREATE_SOCKET_CHANNEL', `${ActionTypes.ACK_USER_JOIN}-${localStorage.getItem('groupID')}`)
     socket.on(`${ActionTypes.ACK_USER_JOIN}-${localStorage.getItem('groupID')}`, (data: any) => {
       const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
       const lastJoinUser = cartGroup.users.pop()
@@ -51,8 +50,13 @@ const createSocketChannel = (socket: any) =>
 
       emit(data)
     })
-
+    console.log('CREATE_SOCKET_CHANNEL', `${ActionTypes.ACK_ADD_ITEM}-${localStorage.getItem('groupID')}`)
     socket.on(`${ActionTypes.ACK_ADD_ITEM}-${localStorage.getItem('groupID')}`, (data: any) => {
+      const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
+      const lastAddedItem = cartGroup.cart_items.pop()
+      if (lastAddedItem && lastAddedItem.user_id !== localStorage.getItem('userID')) {
+        Notification({ type: 'success', message: 'New Item added' })
+      }
       emit(data)
     })
     return () => {
@@ -101,6 +105,7 @@ const listenServerSaga = function*() {
     while (true) {
       const payload = yield take(socketChannel)
       yield put({ type: ActionTypes.ACK_USER_JOIN, payload })
+      yield put({ type: ActionTypes.ACK_ADD_ITEM, payload })
     }
   } catch (error) {
     console.log(error)

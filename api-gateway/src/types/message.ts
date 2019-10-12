@@ -14,14 +14,14 @@ export interface ICartItem {
   count: number;
   remark?: string;
 }
-export interface ICart {
+export interface ICartGroup {
   cartGroupID: string;
   cart_items: ICartItem[];
   users: IUser[];
 }
 
 export interface IResponse {
-  data?: ICart | IUser;
+  data?: ICartGroup | IUser;
   message?: string;
   code?: number;
 }

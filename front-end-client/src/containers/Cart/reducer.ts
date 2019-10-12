@@ -46,6 +46,13 @@ function orderReducer(state: ContainerState = initialState, action: ContainerAct
         channelStatus: true,
         serverStatus: false,
       }
+
+    case ActionTypes.ACK_ADD_ITEM:
+      return {
+        response: JSON.parse(action.payload),
+        channelStatus: true,
+        serverStatus: false,
+      }
     case ActionTypes.SERVER_OFF:
       return { ...state, serverStatus: 'off' }
     case ActionTypes.SERVER_ON:
