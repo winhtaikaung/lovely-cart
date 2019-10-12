@@ -1,5 +1,6 @@
-import { ContainerState, ContainerActions, ICart, IResponse } from './types'
+import { ContainerState, ContainerActions } from './types'
 import ActionTypes from './constants'
+import { IResponse } from '../../types'
 
 // The initial state of the App
 export const initialState: ContainerState = {
@@ -32,7 +33,7 @@ function orderReducer(state: ContainerState = initialState, action: ContainerAct
         loading: false,
       }
     case ActionTypes.CREATE_GROUP_ERROR:
-      const { error, loading, ...rest } = state
+      const { error } = state
       return {
         channelStatus: true,
         serverStatus: false,

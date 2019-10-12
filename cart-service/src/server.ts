@@ -58,7 +58,6 @@ export class CartService {
 
     this.mqHelper.subscribeMQP(QMethods.USER_JOIN, async (err, queueName, callBackMessage) => {
       let user = JSON.parse(callBackMessage) as IUser;
-      user.user_id = nanoid();
       let cart = await this._getRedisClient(user.cartGroupID);
       cart = JSON.parse(cart) as ICart;
       cart.users.push(user);

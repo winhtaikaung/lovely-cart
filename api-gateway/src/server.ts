@@ -110,12 +110,6 @@ export class GatewayServer {
   }
 
   private emitSocket(): void {
-    // this.mqHelper.subscribeMQP(QMethods.CREATE_GROUP, (err, quename, msg: any) => {
-    //   const cart = JSON.parse(msg) as ICart;
-    //   process.stdout.write(`\n${cart.cartGroupID}\n`);
-    //   this.io.emit(`${CartEvents.ACK_CREATE_GROUP}`, msg);
-    // });
-
     this.mqHelper.subscribeMQP(QMethods.ACK_DELETE_GROUP, (err, quename, msg: IResponse) => {
       this.io.emit(CartEvents.ACK_DELETE_GROUP, msg);
       process.stdout.write(`[server](message):  ${msg}\n`);
@@ -132,7 +126,10 @@ export class GatewayServer {
       this.io.emit(CartEvents.ACK_USER_LEFT, msg);
       process.stdout.write(`[server](message):  ${msg}\n`);
     });
-    this.mqHelper.subscribeMQP(QMethods.ACK_ADD_ITEM, (err, quename, msg: IResponse) => {
+
+    this.mqHelper.subscribeMQP(QMethods.ACK_ADD_ITEM, (err, quename, msg: any) => {
+      const data = (JSON.parse(msg) as IResponse).data;
+      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_USER_JOIN}-${data ? data.cartGroupID : ""}\n`);
       this.io.emit(CartEvents.ACK_ADD_ITEM, msg);
       process.stdout.write(`[server](message):  ${msg}\n`);
     });

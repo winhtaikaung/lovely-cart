@@ -3,9 +3,9 @@ import { eventChannel } from 'redux-saga'
 import { take, call, put, fork, race, cancelled, delay, all, takeLatest } from 'redux-saga/effects'
 import ActionTypes from './constants'
 import Notification from '../../utils/notification'
-import { IResponse } from '../Order/types'
-import { ICart } from './types'
 import { commonSaga } from '../../middleware/api'
+import { IResponse, ICartGroup } from '../../types'
+// import { IResponse } from '../Order/types'
 
 // wrapping functions for socket events (connect, disconnect, reconnect)
 const socketServerURL = 'http://localhost:3002'
@@ -43,7 +43,16 @@ const createSocketChannel = (socket: any) =>
   eventChannel(emit => {
     console.log('CREATE_SOCKET_CHANNEL', `${ActionTypes.ACK_USER_JOIN}-${localStorage.getItem('groupID')}`)
     socket.on(`${ActionTypes.ACK_USER_JOIN}-${localStorage.getItem('groupID')}`, (data: any) => {
-      Notification({ type: 'success', message: 'New User Joined' })
+      const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
+      const lastJoinUser = cartGroup.users.pop()
+      if (lastJoinUser && lastJoinUser.user_id !== localStorage.getItem('userID')) {
+        Notification({ type: 'success', message: 'New User Joined' })
+      }
+
+      emit(data)
+    })
+
+    socket.on(`${ActionTypes.ACK_ADD_ITEM}-${localStorage.getItem('groupID')}`, (data: any) => {
       emit(data)
     })
     return () => {
@@ -86,6 +95,7 @@ const listenServerSaga = function*() {
     yield fork(listenDisconnectSaga)
     yield fork(listenConnectSaga)
     yield fork(userJoin, socket)
+    yield fork(addCartItem, socket)
     yield put({ type: ActionTypes.SERVER_ON })
 
     while (true) {
@@ -118,9 +128,19 @@ export function* userJoin(socket: SocketIOClient.Socket) {
   // Select username from store
 
   while (true) {
-    const { param, callback } = yield take(ActionTypes.USER_JOIN)
-    socket.emit(ActionTypes.USER_JOIN, param)
-    callback(param)
+    const { params, callback } = yield take(ActionTypes.USER_JOIN)
+    socket.emit(ActionTypes.USER_JOIN, params)
+    console.log('USER_JOIN_SAGA', params)
+    callback(params)
+  }
+}
+
+export function* addCartItem(socket: SocketIOClient.Socket) {
+  // Select username from store
+
+  while (true) {
+    const { params } = yield take(ActionTypes.ADD_ITEM)
+    socket.emit(ActionTypes.ADD_ITEM, params)
   }
 }
 

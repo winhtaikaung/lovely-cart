@@ -1,7 +1,6 @@
 import ActionTypes from './constants'
 import nanoid from 'nanoid'
-import { IUser } from './types'
-import { IResponse, ICart } from '../Order/types'
+import { IUser, ICartGroup } from '../../types'
 
 interface SocketEvents {
   type:
@@ -19,7 +18,7 @@ interface SocketEvents {
     | ActionTypes.ACK_USER_JOIN
 
   payload: any
-  param?: any
+  params?: any
   callback?: (data: any) => void
 }
 
@@ -85,15 +84,15 @@ export const userJoinCart: (user: IUser, onUserJoin: (data: any) => void) => Soc
   return {
     type: ActionTypes.USER_JOIN,
     payload: null,
-    param: user,
+    params: user,
     callback: onUserJoin,
   }
 }
 
-export const userAddItemCart: (cartItem: ICart) => SocketEvents = (cartItem: ICart) => {
+export const userAddItemCart: (cartItem: ICartGroup) => SocketEvents = (cartItem: ICartGroup) => {
   return {
     type: ActionTypes.ADD_ITEM,
     payload: null,
-    param: cartItem,
+    params: cartItem,
   }
 }

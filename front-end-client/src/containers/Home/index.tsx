@@ -17,6 +17,7 @@ const { Sider, Content } = Layout
 const Home: React.FC<ContainerState> = ({ menuItems, loadMenus }) => {
   useEffect(() => {
     loadMenus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
