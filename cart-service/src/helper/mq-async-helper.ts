@@ -1,7 +1,19 @@
 import amqp from "amqplib";
 export class MQHelper {
   // tslint:disable-next-line:no-empty
-  constructor() {}
+  private mqUserName: string;
+  private mqPassword: string;
+  private mqHost: string;
+  private mqPort: string;
+  private mqpConnectionString: string;
+
+  constructor() {
+    this.mqUserName = process.env.MQP_USER_NAME || "username";
+    this.mqPassword = process.env.MQP_PASSWORD || "mybunny";
+    this.mqHost = process.env.MQP_HOST || "localhost";
+    this.mqPort = process.env.MQP_PORT || "5672";
+    this.mqpConnectionString = `amqp://${this.mqUserName}:${this.mqPassword}@${this.mqHost}:${this.mqPort}?heartbeat=60`;
+  }
 
   get publishMQP() {
     return this._publishMQP;
@@ -15,7 +27,7 @@ export class MQHelper {
     message: any,
     callback?: (err: any, queueName: string, callBackmsg: any) => void,
   ) {
-    const conn = await amqp.connect("amqp://username:mybunny@localhost:5672?heartbeat=60");
+    const conn = await amqp.connect(this.mqpConnectionString);
     const channel = await conn.createChannel();
     await channel.assertExchange(queueName, "fanout", {
       durable: false,
@@ -28,7 +40,7 @@ export class MQHelper {
   }
 
   private async _subScribeMQP(queueName: string, callback?: (err: any, queueName: string, callBackmsg: any) => void) {
-    const conn = await amqp.connect("amqp://username:mybunny@localhost:5672?heartbeat=60");
+    const conn = await amqp.connect(this.mqpConnectionString);
     const channel = await conn.createChannel();
     await channel.assertExchange(queueName, "fanout", {
       durable: false,

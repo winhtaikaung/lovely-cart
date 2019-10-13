@@ -13,6 +13,16 @@ start:
 		docker run -d --name rabbit-mq-server -p ${RABBIT_MQ_PORT}:5672 -p ${RABBIT_MQ_ADMIN_PORT}:15672 -e RABBITMQ_USERNAME=${RABBITMQ_USERNAME} -e RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD} bitnami/rabbitmq:latest 
 		# @eval $$(minikube docker-env) ;
 		docker run -d --name myMongodb -p ${MONGODB_PORT}:27017 mongo:latest 
+		# @eval $$(minikube docker-env) ;
+		
+		# sh docker-build.sh
+		# kubectl apply -f k8s/external.yaml
+		# kubectl apply -f k8s/api-gateway/configmap.yaml
+		# kubectl apply -f k8s/cart-services/configmap.yaml
+		# kubectl apply -f k8s/api-gateway/deploymant.yaml
+		# kubectl apply -f k8s/cart-services/deploymant.yaml
+		# kubectl apply -f k8s/api-gateway/service.yaml
+		# kubectl apply -f k8s/cart-services/service.yaml
 
 .PHONY: stop 
 stop:

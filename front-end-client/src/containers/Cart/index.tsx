@@ -1,5 +1,13 @@
 import React, { useEffect } from 'react'
-import { connectSocketServer, createGroup, userJoinCart, disconnectSocketServer, userAddItemCart } from './actions'
+import {
+  connectSocketServer,
+  createGroup,
+  userJoinCart,
+  updateCartItem,
+  disconnectSocketServer,
+  userAddItemCart,
+  removeCartItem,
+} from './actions'
 import { createStructuredSelector } from 'reselect'
 import { Dispatch } from 'redux'
 import { withRouter } from 'react-router'
@@ -8,6 +16,7 @@ import { connect } from 'react-redux'
 import nanoid from 'nanoid'
 import { ContainerState } from './types'
 import { IUser, ICartItem } from '../../types'
+
 const cartItem = {
   id: 661,
   byline: 'dark chocolate with tasting notes of sun maid raisins and cashew nuts',
@@ -31,7 +40,16 @@ const cartItem = {
     'https://storage.googleapis.com/spineproduction/uploads/recipe/vertical_image/611/benns_anaimalai__1_.jpg',
 }
 const GroupOrderView: React.FC<ContainerState> = props => {
-  const { connectSocketServer, createGroup, userJoinCart, userAddItemCart, match, disconnectSocketServer } = props
+  const {
+    connectSocketServer,
+    createGroup,
+    userJoinCart,
+    userAddItemCart,
+    updateCartItem,
+    removeCartItem,
+    match,
+    disconnectSocketServer,
+  } = props
   if (match.params.groupID) {
     localStorage.setItem('groupID', match.params.groupID)
   }
@@ -79,6 +97,39 @@ const GroupOrderView: React.FC<ContainerState> = props => {
       >
         Add Item
       </button>
+      <button
+        onClick={() => {
+          const userID = localStorage.getItem('userID')
+          const itemID = nanoid()
+          updateCartItem({
+            cartGroupID: match.params.groupID || localStorage.getItem('groupID'),
+            user_id: userID || '',
+            item_id: 'FRp1SA2mozPs8Nx6bPuDB',
+            item: cartItem,
+            category: 'dessert',
+            count: 1000,
+          })
+        }}
+      >
+        Update Item
+      </button>
+
+      <button
+        onClick={() => {
+          const userID = localStorage.getItem('userID')
+          const itemID = nanoid()
+          removeCartItem({
+            cartGroupID: match.params.groupID || localStorage.getItem('groupID'),
+            user_id: userID || '',
+            item_id: 'CIWV29DmSRcYxI31kXEiu',
+            item: cartItem,
+            category: 'dessert',
+            count: 1000,
+          })
+        }}
+      >
+        Remove Item
+      </button>
 
       {/* item_id: string;
   cartGroupID: string;
@@ -97,6 +148,8 @@ const mapDispatchToProps = (dispatch: Dispatch) => ({
   userJoinCart: (user: IUser, callback: (data: any) => void) => dispatch(userJoinCart(user, callback)),
 
   userAddItemCart: (user: ICartItem) => dispatch(userAddItemCart(user)),
+  updateCartItem: (user: ICartItem) => dispatch(updateCartItem(user)),
+  removeCartItem: (user: ICartItem) => dispatch(removeCartItem(user)),
   disconnectSocketServer: () => dispatch(disconnectSocketServer()),
 })
 

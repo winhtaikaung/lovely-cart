@@ -7,10 +7,9 @@ import { QMethods } from "./types/event";
 import { ICartGroup, IUser, ICartItem } from "./types/message";
 
 const { promisify } = require("util");
-const amqp = require("amqplib/callback_api");
 
 export class CartService {
-  public static readonly PORT: number = 3000;
+  public static readonly PORT: number = 3001;
   // tslint:disable-next-line:variable-name
   private _app: express.Application;
   private server: Server;
@@ -42,7 +41,9 @@ export class CartService {
 
   private createRedisConnection(): RedisClient {
     // create and connect redis client to local instance.
-    const client = redis.createClient(6379);
+    const redisHost = process.env.REDIS_HOST || "localhost";
+    const redisPort: number = parseInt(process.env.REDIS_PORT || "6379");
+    const client = redis.createClient(redisPort, redisHost);
 
     // echo redis errors to the console
     client.on("error", err => {
@@ -82,7 +83,10 @@ export class CartService {
       const userExist = cart.cart_items.some((item: ICartItem) => item.user_id === cartItem.user_id);
 
       if (userExist) {
-        const index = cart.cart_items.findIndex((item: ICartItem) => item.item_id === cartItem.item_id);
+        const index = cart.cart_items.findIndex(
+          (item: ICartItem) => item.item_id === cartItem.item_id && item.user_id === cartItem.user_id,
+        );
+        console.log(index);
         if (index !== -1) {
           cart.cart_items[index] = cartItem;
         }
@@ -99,6 +103,7 @@ export class CartService {
       cart.cart_items = userExist
         ? cart.cart_items.filter((item: ICartItem) => item.item_id !== cartItem.item_id)
         : cart.cart_items;
+      console.log(cartItem);
       await this._setRedisClient(cartItem.cartGroupID, JSON.stringify(cart));
       this.mqHelper.publishMQP(QMethods.ACK_REMOVE_ITEM, JSON.stringify({ data: cart }));
     });

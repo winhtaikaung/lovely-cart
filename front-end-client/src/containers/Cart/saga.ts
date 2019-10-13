@@ -59,8 +59,34 @@ const createSocketChannel = (socket: any) =>
       }
       emit(data)
     })
+
+    socket.on(`${ActionTypes.ACK_UPDATE_ITEM}-${localStorage.getItem('groupID')}`, (data: any) => {
+      const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
+      const lastAddedItem = cartGroup.cart_items.pop()
+      if (lastAddedItem && lastAddedItem.user_id !== localStorage.getItem('userID')) {
+        Notification({ type: 'success', message: 'New Item added' })
+      }
+      emit(data)
+    })
+
+    socket.on(`${ActionTypes.ACK_REMOVE_ITEM}-${localStorage.getItem('groupID')}`, (data: any) => {
+      const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
+      const lastAddedItem = cartGroup.cart_items.pop()
+      if (lastAddedItem && lastAddedItem.user_id !== localStorage.getItem('userID')) {
+        Notification({ type: 'success', message: 'Item Removed' })
+      }
+      emit(data)
+    })
     return () => {
       socket.off(ActionTypes.USER_JOIN, (data: any) => {
+        emit(data)
+      })
+
+      socket.off(ActionTypes.ADD_ITEM, (data: any) => {
+        emit(data)
+      })
+
+      socket.off(ActionTypes.UPDATE_ITEM, (data: any) => {
         emit(data)
       })
     }
@@ -100,12 +126,16 @@ const listenServerSaga = function*() {
     yield fork(listenConnectSaga)
     yield fork(userJoin, socket)
     yield fork(addCartItem, socket)
+    yield fork(updateCartItem, socket)
+    yield fork(removeCartItem, socket)
     yield put({ type: ActionTypes.SERVER_ON })
 
     while (true) {
       const payload = yield take(socketChannel)
       yield put({ type: ActionTypes.ACK_USER_JOIN, payload })
       yield put({ type: ActionTypes.ACK_ADD_ITEM, payload })
+      yield put({ type: ActionTypes.ACK_UPDATE_ITEM, payload })
+      yield put({ type: ActionTypes.ACK_REMOVE_ITEM, payload })
     }
   } catch (error) {
     console.log(error)
@@ -141,11 +171,23 @@ export function* userJoin(socket: SocketIOClient.Socket) {
 }
 
 export function* addCartItem(socket: SocketIOClient.Socket) {
-  // Select username from store
-
   while (true) {
     const { params } = yield take(ActionTypes.ADD_ITEM)
     socket.emit(ActionTypes.ADD_ITEM, params)
+  }
+}
+
+export function* updateCartItem(socket: SocketIOClient.Socket) {
+  while (true) {
+    const { params } = yield take(ActionTypes.UPDATE_ITEM)
+    socket.emit(ActionTypes.UPDATE_ITEM, params)
+  }
+}
+
+export function* removeCartItem(socket: SocketIOClient.Socket) {
+  while (true) {
+    const { params } = yield take(ActionTypes.REMOVE_ITEM)
+    socket.emit(ActionTypes.REMOVE_ITEM, params)
   }
 }
 

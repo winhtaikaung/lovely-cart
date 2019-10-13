@@ -7,6 +7,7 @@ interface SocketEvents {
     | ActionTypes.CREATE_GROUP
     | ActionTypes.USER_JOIN
     | ActionTypes.ADD_ITEM
+    | ActionTypes.UPDATE_ITEM
     | ActionTypes.REMOVE_ITEM
     | ActionTypes.CHANNEL_OFF
     | ActionTypes.CHANNEL_ON
@@ -17,6 +18,8 @@ interface SocketEvents {
     | ActionTypes.ACK_CREATE_GROUP
     | ActionTypes.ACK_USER_JOIN
     | ActionTypes.ACK_ADD_ITEM
+    | ActionTypes.ACK_UPDATE_ITEM
+    | ActionTypes.ACK_REMOVE_ITEM
 
   payload: any
   params?: any
@@ -93,6 +96,22 @@ export const userJoinCart: (user: IUser, onUserJoin: (data: any) => void) => Soc
 export const userAddItemCart: (cartItem: ICartItem) => SocketEvents = (cartItem: ICartItem) => {
   return {
     type: ActionTypes.ADD_ITEM,
+    payload: null,
+    params: cartItem,
+  }
+}
+
+export const updateCartItem: (cartItem: ICartItem) => SocketEvents = (cartItem: ICartItem) => {
+  return {
+    type: ActionTypes.UPDATE_ITEM,
+    payload: null,
+    params: cartItem,
+  }
+}
+
+export const removeCartItem: (cartItem: ICartItem) => SocketEvents = (cartItem: ICartItem) => {
+  return {
+    type: ActionTypes.REMOVE_ITEM,
     payload: null,
     params: cartItem,
   }

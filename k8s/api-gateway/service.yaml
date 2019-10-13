@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    run: api-gateway
+  name: api-gateway
+  namespace: default
+spec:
+  ports:
+    - port: 3001
+      protocol: TCP
+      targetPort: 3001
+      nodePort: 30001
+  selector:
+    run: api-gateway
+  sessionAffinity: None
+  type: NodePort

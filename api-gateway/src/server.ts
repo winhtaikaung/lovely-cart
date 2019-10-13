@@ -10,6 +10,7 @@ import { CartEvents, QMethods } from "./types/event";
 import { ICartGroup, ICartItem, IResponse, IUser } from "./types/message";
 import { Method } from "./types/method";
 
+import cacheManager, { Cache } from "cache-manager";
 import { MQHelper } from "./helper/mq-async-helper";
 
 export class GatewayServer {
@@ -18,6 +19,7 @@ export class GatewayServer {
   private _app: express.Application;
   private server: Server;
   private io: SocketIO.Server;
+  private memoryCache: Cache;
   private mqHelper: MQHelper;
   private port: string | number;
 
@@ -31,9 +33,15 @@ export class GatewayServer {
 
     this.listen();
     this.mqHelper = new MQHelper();
+    this.memoryCache = cacheManager.caching({
+      max: parseInt(process.env.MAX_CACHE || "1000", 1000),
+      store: "memory",
+      ttl: parseInt(process.env.TTL || "600", 600) /* 10 minutes */,
+    });
     this.listenSocket();
     this.emitSocket();
     this.httpServe();
+    this.configureCacheSetting();
   }
   get app(): express.Application {
     return this._app;
@@ -92,13 +100,13 @@ export class GatewayServer {
       });
 
       socket.on(CartEvents.UPDATE_ITEM, (m: ICartItem) => {
-        this.mqHelper.publishMQP(QMethods.UPDATE_ITEM, m, (err, msg, content) => {
+        this.mqHelper.publishMQP(QMethods.UPDATE_ITEM, JSON.stringify(m), (err, msg, content) => {
           process.stdout.write(`[server](message):  ${content}\n`);
         });
       });
 
       socket.on(CartEvents.REMOVE_ITEM, (m: ICartItem) => {
-        this.mqHelper.publishMQP(QMethods.REMOVE_ITEM, m, (err, msg, content) => {
+        this.mqHelper.publishMQP(QMethods.REMOVE_ITEM, JSON.stringify(m), (err, msg, content) => {
           process.stdout.write(`[server](message):  ${content}\n`);
         });
       });
@@ -134,25 +142,48 @@ export class GatewayServer {
       // process.stdout.write(`[server](message):  ${msg}\n`);
     });
 
-    this.mqHelper.subscribeMQP(QMethods.ACK_UPDATE_ITEM, (err, quename, msg: IResponse) => {
-      this.io.emit(CartEvents.ACK_UPDATE_ITEM, msg);
+    this.mqHelper.subscribeMQP(QMethods.ACK_UPDATE_ITEM, (err, quename, msg: any) => {
+      const data = (JSON.parse(msg) as IResponse).data;
+      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_UPDATE_ITEM}-${data ? data.cartGroupID : ""}\n`);
+      this.io.emit(`${CartEvents.ACK_UPDATE_ITEM}-${data ? data.cartGroupID : ""}`, msg);
+
       process.stdout.write(`[server](message):  ${msg}\n`);
     });
 
-    this.mqHelper.subscribeMQP(QMethods.ACK_REMOVE_ITEM, (err, quename, msg: IResponse) => {
-      this.io.emit(CartEvents.ACK_REMOVE_ITEM, msg);
+    this.mqHelper.subscribeMQP(QMethods.ACK_REMOVE_ITEM, (err, quename, msg: any) => {
+      const data = (JSON.parse(msg) as IResponse).data;
+      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_REMOVE_ITEM}-${data ? data.cartGroupID : ""}\n`);
+      this.io.emit(`${CartEvents.ACK_REMOVE_ITEM}-${data ? data.cartGroupID : ""}`, msg);
       process.stdout.write(`[server](message):  ${msg}\n`);
     });
   }
 
+  private configureCacheSetting(): void {}
+
   private httpServe(): void {
     this._app.get("/menu", async (req: any, res: any) => {
-      await axios({
-        method: Method.GET,
-        url: "https://grain.com.sg/menu.json",
-      }).then((response: any) => {
-        res.status(response.status).send(response.data);
-      });
+      try {
+        const menuUrl: string = "https://grain.com.sg/menu.json";
+        const cachedResult = await this.memoryCache.get(menuUrl);
+        const result =
+          cachedResult ||
+          (await axios({
+            method: Method.GET,
+            url: menuUrl,
+          })).data;
+
+        this.memoryCache.set(menuUrl, result.data, {
+          ttl: parseInt(process.env.TTL || "600", 600),
+        });
+
+        res.json(result);
+      } catch (error) {
+        const { status = 500, statusText = "Grain API Error" } = error.response;
+        res.status(status).json({
+          status,
+          statusText,
+        });
+      }
     });
 
     this._app.post("/group", async (req: any, res: any) => {

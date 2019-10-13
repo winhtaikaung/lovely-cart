@@ -1,0 +1,37 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    run: api-gateway
+  name: api-gateway-deploy
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: api-gateway
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        run: api-gateway
+    spec:
+      containers:
+        - image: api-gateway:v1
+          imagePullPolicy: IfNotPresent
+          name: api-gateway
+          envFrom:
+            - configMapRef:
+                name: api-gateway-env
+          ports:
+            - containerPort: 3002
+              protocol: TCP
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
