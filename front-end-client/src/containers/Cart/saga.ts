@@ -54,11 +54,19 @@ const createSocketChannel = (socket: any) =>
     })
     console.log('CREATE_SOCKET_CHANNEL', `${ActionTypes.ACK_ADD_ITEM}-${selectLocalGroupID()}`)
     socket.on(`${ActionTypes.ACK_ADD_ITEM}-${localGroupID}`, (data: any) => {
-      const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
-      const lastAddedItem = cartGroup.cart_items.pop()
-      if (lastAddedItem && lastAddedItem.user_id !== localuserID) {
-        Notification({ type: 'success', message: 'New Item added' })
+      // const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
+      // const lastAddedItem = cartGroup.cart_items.pop()
+      // if (lastAddedItem && lastAddedItem.user_id !== localuserID) {
+      //   Notification({ type: 'success', message: 'New Item added' })
+      // }
+      const cartGroup: IResponse = JSON.parse(data) as IResponse
+      const updatedUser = cartGroup.mutatedItem.user_id
+      if (updatedUser === localuserID) {
+        Notification({ type: 'success', message: 'Item successfully updated' })
+      } else {
+        Notification({ type: 'success', message: `${updatedUser} add ${cartGroup.mutatedItem.item.name} to cart` })
       }
+
       emit(data)
     })
 

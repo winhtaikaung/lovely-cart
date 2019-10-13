@@ -26,7 +26,7 @@ export class MQHelper {
   private async _publishMQP(
     queueName: string,
     message: any,
-    callback?: (err: any, queueName: string, callBackmsg: any) => void,
+    callback?: (callBackMessage: any, queueName: string, err: any) => void,
   ) {
     const conn = await amqp.connect(this.mqpConnectionString);
     const channel = await conn.createChannel();
@@ -38,11 +38,14 @@ export class MQHelper {
       if (process.env.NODE_ENV !== 'PRODUCTION') {
         process.stdout.write(` [x] ${message} sent from queue ${queueName}\n`);
       }
-      callback(null, queueName, message);
+      callback(message, queueName, null);
     }
   }
 
-  private async _subScribeMQP(queueName: string, callback?: (err: any, queueName: string, callBackmsg: any) => void) {
+  private async _subScribeMQP(
+    queueName: string,
+    callback?: (callBackMessage: any, queueName: string, err: any) => void,
+  ) {
     const conn = await amqp.connect(this.mqpConnectionString);
     const channel = await conn.createChannel();
     await channel.assertExchange(queueName, 'fanout', {
@@ -57,7 +60,7 @@ export class MQHelper {
       q.queue,
       (msg: any) => {
         if (callback) {
-          callback(null, queueName, msg.content.toString());
+          callback(msg.content.toString(), queueName, null);
         }
         if (process.env.NODE_ENV !== 'PRODUCTION') {
           process.stdout.write(` [x] Received from ${queueName} ${msg.content.toString()}\n`);
