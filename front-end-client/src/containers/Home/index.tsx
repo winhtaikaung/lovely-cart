@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { withRouter } from 'react-router'
 import { connect } from 'react-redux'
 import { Tabs, Icon, Layout } from 'antd'
-import { makeSelectCurrentUser, makeSelectMenuItems } from './selectors'
+import { makeSelectMenuItems } from './selectors'
 import { loadMenus } from './actions'
 import { Dispatch } from 'redux'
 import { createStructuredSelector } from 'reselect'
@@ -23,7 +23,7 @@ const Home: React.FC<ContainerState> = ({ menuItems, loadMenus }) => {
   return (
     <>
       <Layout style={{ minHeight: '100vh' }}>
-        <Layout style={{ marginRight: 300 }}>
+        <Layout style={{ marginRight: 400 }}>
           <Content>
             <Tabs
               defaultActiveKey="1"
@@ -79,7 +79,7 @@ const Home: React.FC<ContainerState> = ({ menuItems, loadMenus }) => {
           </Content>
         </Layout>
         <Sider
-          width={300}
+          width={400}
           style={{
             overflow: 'auto',
             height: '100vh',
@@ -100,7 +100,6 @@ const mapDispatchToProps = (dispatch: Dispatch) => ({
   loadMenus: () => dispatch(loadMenus()),
 })
 const mapStateToProps = createStructuredSelector({
-  currentUser: makeSelectCurrentUser(),
   menuItems: makeSelectMenuItems(),
 })
 

@@ -14,6 +14,7 @@ enum ActionTypes {
   CREATE_GROUP_SUCCESS = 'CREATE_GROUP_SUCCESS',
   CREATE_GROUP_ERROR = 'CREATE_GROUP_ERROR',
   DELETE_GROUP = 'delete-group',
+  FETCH_CART_GROUP = 'fetch-cartgroup',
   USER_JOIN = 'user-join',
   USER_LEFT = 'user-left',
   ERROR = 'error',
@@ -27,6 +28,7 @@ enum ActionTypes {
   ACK_USER_JOIN = 'ack-user-join',
   ACK_USER_LEFT = 'ack-user-left',
   ACK_ERROR = 'ack-error',
+  ACK_FETCH_CART_GROUP = 'ack-fetch-cart-group',
 }
 
 export default ActionTypes

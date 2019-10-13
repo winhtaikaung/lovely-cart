@@ -5,6 +5,7 @@ import { IUser, ICartItem } from '../../types'
 interface SocketEvents {
   type:
     | ActionTypes.CREATE_GROUP
+    | ActionTypes.FETCH_CART_GROUP
     | ActionTypes.USER_JOIN
     | ActionTypes.USER_LEFT
     | ActionTypes.ADD_ITEM
@@ -22,6 +23,7 @@ interface SocketEvents {
     | ActionTypes.ACK_UPDATE_ITEM
     | ActionTypes.ACK_REMOVE_ITEM
     | ActionTypes.ACK_USER_LEFT
+    | ActionTypes.ACK_FETCH_CART_GROUP
 
   payload: any
   params?: any
@@ -48,20 +50,6 @@ export const disconnectSocketServer: () => SocketEvents = () => ({
   type: ActionTypes.STOP_CHANNEL,
   payload: null,
 })
-
-// export const createGroup: () => SocketEvents = () => {
-//   const groupID = nanoid()
-
-//   return {
-//     type: ActionTypes.CREATE_GROUP,
-//     payload: null,
-//     param: {
-//       cartGroupID: groupID,
-//       cart_items: [],
-//       users: [{ cartGroupID: groupID, user_id: nanoid(), is_admin: true }],
-//     },
-//   }
-// }
 
 export const createGroup: (onCreatedCallback: (data: any, err: any) => void) => CreateGroupActionTypes = (
   onCreatedCallback: (data: any, err: any) => void,
@@ -122,6 +110,14 @@ export const removeCartItem: (cartItem: ICartItem) => SocketEvents = (cartItem: 
 export const userLeftGroup: (user: IUser) => SocketEvents = (user: IUser) => {
   return {
     type: ActionTypes.USER_LEFT,
+    payload: null,
+    params: user,
+  }
+}
+
+export const fetchCartGroup: (user: IUser) => SocketEvents = (user: IUser) => {
+  return {
+    type: ActionTypes.FETCH_CART_GROUP,
     payload: null,
     params: user,
   }

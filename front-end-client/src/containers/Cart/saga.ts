@@ -5,7 +5,7 @@ import ActionTypes from './constants'
 import Notification from '../../utils/notification'
 import { commonSaga } from '../../middleware/api'
 import { IResponse, ICartGroup } from '../../types'
-// import { IResponse } from '../Order/types'
+import { selectLocalGroupID, selectLocalUserID } from './selectors'
 
 // wrapping functions for socket events (connect, disconnect, reconnect)
 const socketServerURL = 'http://localhost:3002'
@@ -41,46 +41,48 @@ const reconnect = () => {
 // This is how channel is created
 const createSocketChannel = (socket: any) =>
   eventChannel(emit => {
-    socket.on(`${ActionTypes.ACK_USER_JOIN}-${localStorage.getItem('groupID')}`, (data: any) => {
+    const localGroupID = selectLocalGroupID()
+    const localuserID = selectLocalUserID()
+    socket.on(`${ActionTypes.ACK_USER_JOIN}-${selectLocalGroupID()}`, (data: any) => {
       const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
       const lastJoinUser = cartGroup.users.pop()
-      if (lastJoinUser && lastJoinUser.user_id !== localStorage.getItem('userID')) {
-        Notification({ type: 'success', message: 'New User Joined' })
+      if (lastJoinUser && lastJoinUser.user_id !== localuserID) {
+        Notification({ type: 'success', message: `${lastJoinUser.user_id} joined to group` })
       }
 
       emit(data)
     })
-    console.log('CREATE_SOCKET_CHANNEL', `${ActionTypes.ACK_ADD_ITEM}-${localStorage.getItem('groupID')}`)
-    socket.on(`${ActionTypes.ACK_ADD_ITEM}-${localStorage.getItem('groupID')}`, (data: any) => {
+    console.log('CREATE_SOCKET_CHANNEL', `${ActionTypes.ACK_ADD_ITEM}-${selectLocalGroupID()}`)
+    socket.on(`${ActionTypes.ACK_ADD_ITEM}-${localGroupID}`, (data: any) => {
       const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
       const lastAddedItem = cartGroup.cart_items.pop()
-      if (lastAddedItem && lastAddedItem.user_id !== localStorage.getItem('userID')) {
+      if (lastAddedItem && lastAddedItem.user_id !== localuserID) {
         Notification({ type: 'success', message: 'New Item added' })
       }
       emit(data)
     })
 
-    socket.on(`${ActionTypes.ACK_UPDATE_ITEM}-${localStorage.getItem('groupID')}`, (data: any) => {
-      const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
-      const lastAddedItem = cartGroup.cart_items.pop()
-      if (lastAddedItem && lastAddedItem.user_id !== localStorage.getItem('userID')) {
-        Notification({ type: 'success', message: 'New Item added' })
+    socket.on(`${ActionTypes.ACK_UPDATE_ITEM}-${localGroupID}`, (data: any) => {
+      const cartGroup: IResponse = JSON.parse(data) as IResponse
+      const updatedUser = cartGroup.mutatedItem.user_id
+      if (updatedUser === localuserID) {
+        Notification({ type: 'success', message: 'Item successfully updated' })
       }
       emit(data)
     })
 
-    socket.on(`${ActionTypes.ACK_REMOVE_ITEM}-${localStorage.getItem('groupID')}`, (data: any) => {
-      const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
-      const lastAddedItem = cartGroup.cart_items.pop()
-      if (lastAddedItem && lastAddedItem.user_id !== localStorage.getItem('userID')) {
-        Notification({ type: 'success', message: 'Item Removed' })
+    socket.on(`${ActionTypes.ACK_REMOVE_ITEM}-${localGroupID}`, (data: any) => {
+      const cartGroup: IResponse = JSON.parse(data) as IResponse
+      const updatedUser = cartGroup.mutatedItem.user_id
+      if (updatedUser === localuserID) {
+        Notification({ type: 'success', message: 'Item successfully removed' })
       }
       emit(data)
     })
 
-    socket.on(`${ActionTypes.ACK_USER_LEFT}-${localStorage.getItem('groupID')}`, (data: any) => {
+    socket.on(`${ActionTypes.ACK_USER_LEFT}-${localGroupID}`, (data: any) => {
       const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
-      const userExist = cartGroup.users.find(user => user.user_id === localStorage.getItem('userID'))
+      const userExist = cartGroup.users.find(user => user.user_id === localuserID)
       if (userExist) {
         Notification({ type: 'info', message: 'User Left' })
       } else {
@@ -90,21 +92,11 @@ const createSocketChannel = (socket: any) =>
       emit(data)
     })
 
-    return () => {
-      socket.off(ActionTypes.USER_JOIN, (data: any) => {
-        emit(data)
-      })
+    socket.on(`${ActionTypes.ACK_FETCH_CART_GROUP}-${localGroupID}`, (data: any) => {
+      emit(data)
+    })
 
-      socket.off(ActionTypes.ADD_ITEM, (data: any) => {
-        emit(data)
-      })
-      socket.off(ActionTypes.UPDATE_ITEM, (data: any) => {
-        emit(data)
-      })
-      socket.off(ActionTypes.USER_LEFT, (data: any) => {
-        emit(data)
-      })
-    }
+    return () => {}
   })
 
 // connection monitoring sagas
@@ -144,6 +136,7 @@ const listenServerSaga = function*() {
     yield fork(updateCartItem, socket)
     yield fork(removeCartItem, socket)
     yield fork(userLeftGroup, socket)
+    yield fork(fetchCartGroup, socket)
     yield put({ type: ActionTypes.SERVER_ON })
 
     while (true) {
@@ -153,6 +146,7 @@ const listenServerSaga = function*() {
       yield put({ type: ActionTypes.ACK_UPDATE_ITEM, payload })
       yield put({ type: ActionTypes.ACK_REMOVE_ITEM, payload })
       yield put({ type: ActionTypes.ACK_USER_LEFT, payload })
+      yield put({ type: ActionTypes.ACK_FETCH_CART_GROUP, payload })
     }
   } catch (error) {
     console.log(error)
@@ -212,6 +206,12 @@ export function* userLeftGroup(socket: SocketIOClient.Socket) {
   while (true) {
     const { params } = yield take(ActionTypes.USER_LEFT)
     socket.emit(ActionTypes.USER_LEFT, params)
+  }
+}
+export function* fetchCartGroup(socket: SocketIOClient.Socket) {
+  while (true) {
+    const { params } = yield take(ActionTypes.FETCH_CART_GROUP)
+    socket.emit(ActionTypes.FETCH_CART_GROUP, params)
   }
 }
 

@@ -9,16 +9,6 @@ const selectGlobal = (state: ApplicationRootState) => {
   return state.cart
 }
 
-const selectRoute = (state: ApplicationRootState) => {
-  return state.router
-}
-
-const makeSelectCurrentUser = () =>
-  createSelector(
-    selectGlobal,
-    globalState => globalState.currentUser,
-  )
-
 const makeSelectResponse = () =>
   createSelector(
     selectGlobal,
@@ -41,19 +31,71 @@ const makeSelectCartGroupID = () =>
   createSelector(
     selectGlobal,
     globalState => {
-      return globalState.response.data.cartGroupID
+      return globalState.response.data ? globalState.response.data.cartGroupID : ''
     },
   )
-const makeSelectMenuItems = () =>
+const makeSelectCartItems = () =>
   createSelector(
     selectGlobal,
-    globalState => globalState.userData.menu,
+    globalState => {
+      return globalState.response.data ? globalState.response.data.cart_items : []
+    },
   )
-
-const makeSelectLocation = () =>
+const makeSelectUsers = () =>
   createSelector(
-    selectRoute,
-    routeState => routeState.location,
+    selectGlobal,
+    globalState => {
+      return globalState.response.data ? globalState.response.data.users : []
+    },
+  )
+const makeSelectMutatedItem = () =>
+  createSelector(
+    selectGlobal,
+    globalState => {
+      return globalState.response.mutatedItem
+    },
   )
 
-export { selectGlobal, makeSelectResponse }
+const makeSelectChannelStatus = () =>
+  createSelector(
+    selectGlobal,
+    globalState => {
+      return globalState.channelStatus
+    },
+  )
+
+const selectLocalGroupID = () => {
+  return localStorage.getItem('groupID') || ''
+}
+
+const makeSelectLocalGroupID = () =>
+  createSelector(
+    selectLocalGroupID,
+    localGroupID => localGroupID,
+  )
+
+const selectLocalUserID = () => {
+  return localStorage.getItem('userID') || ''
+}
+
+const makeSelectLocalUserID = () =>
+  createSelector(
+    selectLocalUserID,
+    localUserID => localUserID,
+  )
+
+export {
+  selectGlobal,
+  makeSelectResponse,
+  makeSelectCartItems,
+  makeSelectUsers,
+  makeSelectCartGroupID,
+  makeSelectMutatedItem,
+  makeSelectChannelStatus,
+  makeSelectLocalGroupID,
+  makeSelectLocalUserID,
+  selectLocalUserID,
+  selectLocalGroupID,
+  makeSelectLoading,
+  makeSelectError,
+}

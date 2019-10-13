@@ -8,6 +8,7 @@ import {
   userAddItemCart,
   removeCartItem,
   userLeftGroup,
+  fetchCartGroup,
 } from './actions'
 import { createStructuredSelector } from 'reselect'
 import { Dispatch } from 'redux'
@@ -17,6 +18,16 @@ import { connect } from 'react-redux'
 import nanoid from 'nanoid'
 import { ContainerState } from './types'
 import { IUser, ICartItem } from '../../types'
+import {
+  makeSelectCartItems,
+  makeSelectUsers,
+  makeSelectMutatedItem,
+  makeSelectResponse,
+  makeSelectChannelStatus,
+  makeSelectLocalGroupID,
+  makeSelectLocalUserID,
+} from './selectors'
+import CartItemPanel from '../../components/cart-item-panel'
 
 const cartItem = {
   id: 661,
@@ -50,18 +61,27 @@ const GroupOrderView: React.FC<ContainerState> = ({
   match,
   userLeftGroup,
   disconnectSocketServer,
+  cartItems,
+  response,
+  fetchCartGroup,
+  users,
+  localUserID,
+  localCartGroupID,
 }) => {
   if (match.params.groupID) {
     localStorage.setItem('groupID', match.params.groupID)
   }
   useEffect(() => {
     connectSocketServer()
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  if (localCartGroupID && localUserID && !response.data) {
+    fetchCartGroup({ cartGroupID: localCartGroupID, user_id: localUserID } as IUser)
+  }
 
   return (
     <>
+      <CartItemPanel cartItems={cartItems} users={users} />
       <button
         onClick={() =>
           createGroup((data: any, err: any) => {
@@ -84,7 +104,7 @@ const GroupOrderView: React.FC<ContainerState> = ({
       </button>
       <button
         onClick={() => {
-          userLeftGroup({ cartGroupID: match.params.groupID, user_id: localStorage.getItem('userID') })
+          userLeftGroup({ cartGroupID: match.params.groupID, user_id: localUserID })
         }}
       >
         User Left
@@ -92,10 +112,10 @@ const GroupOrderView: React.FC<ContainerState> = ({
 
       <button
         onClick={() => {
-          const userID = localStorage.getItem('userID')
+          const userID = localUserID
           const itemID = nanoid()
           userAddItemCart({
-            cartGroupID: match.params.groupID || localStorage.getItem('groupID'),
+            cartGroupID: match.params.groupID || localCartGroupID,
             user_id: userID || '',
             item_id: itemID,
             item: cartItem,
@@ -108,10 +128,9 @@ const GroupOrderView: React.FC<ContainerState> = ({
       </button>
       <button
         onClick={() => {
-          const userID = localStorage.getItem('userID')
-          const itemID = nanoid()
+          const userID = localUserID
           updateCartItem({
-            cartGroupID: match.params.groupID || localStorage.getItem('groupID'),
+            cartGroupID: match.params.groupID || localCartGroupID,
             user_id: userID || '',
             item_id: 'FRp1SA2mozPs8Nx6bPuDB',
             item: cartItem,
@@ -125,10 +144,9 @@ const GroupOrderView: React.FC<ContainerState> = ({
 
       <button
         onClick={() => {
-          const userID = localStorage.getItem('userID')
-          const itemID = nanoid()
+          const userID = localUserID
           removeCartItem({
-            cartGroupID: match.params.groupID || localStorage.getItem('groupID'),
+            cartGroupID: match.params.groupID || localCartGroupID,
             user_id: userID || '',
             item_id: 'CIWV29DmSRcYxI31kXEiu',
             item: cartItem,
@@ -139,14 +157,6 @@ const GroupOrderView: React.FC<ContainerState> = ({
       >
         Remove Item
       </button>
-
-      {/* item_id: string;
-  cartGroupID: string;
-  user_id: string;
-  item?: any;
-  category: string;
-  count: number;
-  remark?: string;  */}
     </>
   )
 }
@@ -161,11 +171,18 @@ const mapDispatchToProps = (dispatch: Dispatch) => ({
   removeCartItem: (cartItem: ICartItem) => dispatch(removeCartItem(cartItem)),
   userLeftGroup: (cartItem: ICartItem) => dispatch(userLeftGroup(cartItem)),
   disconnectSocketServer: () => dispatch(disconnectSocketServer()),
+  fetchCartGroup: (user: IUser) => dispatch(fetchCartGroup(user)),
 })
 
 const mapStateToProps = createStructuredSelector({
-  // currentUser: makeSelectCurrentUser(),
-  // menuItems: makeSelectMenuItems(),
+  cartItems: makeSelectCartItems(),
+  users: makeSelectUsers(),
+  mutatedItem: makeSelectMutatedItem(),
+  originalResponse: makeSelectResponse(),
+  channelStatus: makeSelectChannelStatus(),
+  response: makeSelectResponse(),
+  localCartGroupID: makeSelectLocalGroupID(),
+  localUserID: makeSelectLocalUserID(),
 })
 
 export default withRouter(

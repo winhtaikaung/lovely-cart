@@ -57,6 +57,14 @@ export class CartService {
       this._setRedisClient((JSON.parse(callBackMessage) as ICartGroup).cartGroupID, callBackMessage);
     });
 
+    this.mqHelper.subscribeMQP(QMethods.FETCH_CART_GROUP, async (err, queueName, callBackMessage) => {
+      let cart = await this._getRedisClient((JSON.parse(callBackMessage) as IUser).cartGroupID);
+      if (cart) {
+        cart = JSON.parse(cart) as ICartGroup;
+        this.mqHelper.publishMQP(QMethods.ACK_FETCH_CART_GROUP, JSON.stringify({ data: cart, mutatedItem: null }));
+      }
+    });
+
     this.mqHelper.subscribeMQP(QMethods.USER_JOIN, async (err, queueName, callBackMessage) => {
       let user = JSON.parse(callBackMessage) as IUser;
       let cart = await this._getRedisClient(user.cartGroupID);

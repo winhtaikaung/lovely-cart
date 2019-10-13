@@ -4,8 +4,13 @@ import { IResponse } from '../../types'
 
 // The initial state of the App
 export const initialState: ContainerState = {
-  response: null,
-  channelStatus: 'off',
+  response: {
+    data: null,
+    message: null,
+    code: null,
+    mutatedItem: null,
+  },
+  channelStatus: false,
   serverStatus: 'unknown',
   loading: false,
   error: null,
@@ -19,7 +24,7 @@ function orderReducer(state: ContainerState = initialState, action: ContainerAct
       return { ...state, channelStatus: 'off', serverStatus: 'unknown' }
     case ActionTypes.CREATE_GROUP:
       return {
-        response: action.payload,
+        ...state,
         channelStatus: true,
         serverStatus: false,
         loading: true,
@@ -29,14 +34,14 @@ function orderReducer(state: ContainerState = initialState, action: ContainerAct
       localStorage.setItem('userID', (action.payload as IResponse).data!.users[0].user_id)
       return {
         response: action.payload,
-        channelStatus: true,
+        channelStatus: false,
         serverStatus: false,
         loading: false,
       }
     case ActionTypes.CREATE_GROUP_ERROR:
       const { error } = state
       return {
-        channelStatus: true,
+        channelStatus: false,
         serverStatus: false,
         loading: false,
         error: error,
@@ -66,9 +71,15 @@ function orderReducer(state: ContainerState = initialState, action: ContainerAct
         channelStatus: true,
         serverStatus: false,
       }
-    case ActionTypes.ACK_USER_LEFT:
+    case ActionTypes.ACK_FETCH_CART_GROUP:
       return {
         response: JSON.parse(action.payload),
+        channelStatus: true,
+        serverStatus: false,
+      }
+    case ActionTypes.ACK_USER_LEFT:
+      return {
+        ...state,
         channelStatus: true,
         serverStatus: false,
       }

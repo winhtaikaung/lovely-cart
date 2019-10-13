@@ -35,7 +35,9 @@ export class MQHelper {
     });
     const sent = channel.publish(queueName, '', Buffer.from(message), { persistent: true });
     if (sent && callback) {
-      // process.stdout.write(` [x] ${message} sent from queue ${queueName}\n`);
+      if (process.env.NODE_ENV !== 'PRODUCTION') {
+        process.stdout.write(` [x] ${message} sent from queue ${queueName}\n`);
+      }
       callback(null, queueName, message);
     }
   }
@@ -57,7 +59,9 @@ export class MQHelper {
         if (callback) {
           callback(null, queueName, msg.content.toString());
         }
-        process.stdout.write(` [x] Received from ${queueName} ${msg.content.toString()}\n`);
+        if (process.env.NODE_ENV !== 'PRODUCTION') {
+          process.stdout.write(` [x] Received from ${queueName} ${msg.content.toString()}\n`);
+        }
       },
       {
         noAck: true,
