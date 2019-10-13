@@ -1,17 +1,17 @@
-import axios from "axios";
-import bodyParser from "body-parser";
-import cors from "cors";
-import express from "express";
-import { createServer, Server } from "http";
-import nanoid from "nanoid";
-import socketIo from "socket.io";
-import { CartEvents, QMethods } from "./types/event";
+import axios from 'axios';
+import bodyParser from 'body-parser';
+import cors from 'cors';
+import express from 'express';
+import { createServer, Server } from 'http';
+import nanoid from 'nanoid';
+import socketIo from 'socket.io';
+import { CartEvents, QMethods } from './types/event';
 
-import { ICartGroup, ICartItem, IResponse, IUser } from "./types/message";
-import { Method } from "./types/method";
+import { ICartGroup, ICartItem, IResponse, IUser } from './types/message';
+import { Method } from './types/method';
 
-import cacheManager, { Cache } from "cache-manager";
-import { MQHelper } from "./helper/mq-async-helper";
+import cacheManager, { Cache } from 'cache-manager';
+import { MQHelper } from './helper/mq-async-helper';
 
 export class GatewayServer {
   public static readonly PORT: number = 3002;
@@ -27,21 +27,20 @@ export class GatewayServer {
     this._app = express();
     this.port = process.env.PORT || 3002;
     this._app.use(cors());
-    this._app.options("*", cors());
+    this._app.options('*', cors());
     this.server = createServer(this._app);
     this.io = this.initSocket();
 
     this.listen();
     this.mqHelper = new MQHelper();
     this.memoryCache = cacheManager.caching({
-      max: parseInt(process.env.MAX_CACHE || "1000", 1000),
-      store: "memory",
-      ttl: parseInt(process.env.TTL || "600", 600) /* 10 minutes */,
+      max: parseInt(process.env.MAX_CACHE || '1000', 1000),
+      store: 'memory',
+      ttl: parseInt(process.env.TTL || '600', 600) /* 10 minutes */,
     });
     this.listenSocket();
     this.emitSocket();
     this.httpServe();
-    this.configureCacheSetting();
   }
   get app(): express.Application {
     return this._app;
@@ -87,7 +86,7 @@ export class GatewayServer {
       socket.on(CartEvents.USER_LEFT, (m: IUser) => {
         process.stdout.write(`[server](message): User Left \n`);
         // this.io.emit(CartEvents.ACK_USER_LEFT, JSON.stringify({ cartGroupID: groupID, cart_items: [], users: [] }));
-        this.mqHelper.publishMQP(QMethods.USER_LEFT, m, (err, msg, content) => {
+        this.mqHelper.publishMQP(QMethods.USER_LEFT, JSON.stringify(m), (err, msg, content) => {
           process.stdout.write(`[server](message):  ${content}\n`);
         });
       });
@@ -112,7 +111,7 @@ export class GatewayServer {
       });
 
       socket.on(CartEvents.DISCONNECT, () => {
-        process.stdout.write("Client disconnected\n");
+        process.stdout.write('Client disconnected\n');
       });
     });
   }
@@ -125,45 +124,44 @@ export class GatewayServer {
 
     this.mqHelper.subscribeMQP(QMethods.ACK_USER_JOIN, (err, quename, msg: any) => {
       const data = (JSON.parse(msg) as IResponse).data;
-      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_USER_JOIN}-${data ? data.cartGroupID : ""}\n`);
-      this.io.emit(`${CartEvents.ACK_USER_JOIN}-${data ? data.cartGroupID : ""}`, msg);
+      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_USER_JOIN}-${data ? data.cartGroupID : ''}\n`);
+      this.io.emit(`${CartEvents.ACK_USER_JOIN}-${data ? data.cartGroupID : ''}`, msg);
       // process.stdout.write(`[server](message):${CartEvents.ACK_USER_JOIN}--${msg}\n`);
     });
 
-    this.mqHelper.subscribeMQP(QMethods.ACK_USER_LEFT, (err, quename, msg: IResponse) => {
-      this.io.emit(CartEvents.ACK_USER_LEFT, msg);
-      process.stdout.write(`[server](message):  ${msg}\n`);
+    this.mqHelper.subscribeMQP(QMethods.ACK_USER_LEFT, (err, quename, msg: any) => {
+      const data = (JSON.parse(msg) as IResponse).data;
+      process.stdout.write(`\nUSER-LEFT-${CartEvents.ACK_USER_LEFT}-${data ? data.cartGroupID : ''}\n`);
+      this.io.emit(`${CartEvents.ACK_USER_LEFT}-${data ? data.cartGroupID : ''}`, msg);
     });
 
     this.mqHelper.subscribeMQP(QMethods.ACK_ADD_ITEM, (err, quename, msg: any) => {
       const data = (JSON.parse(msg) as IResponse).data;
-      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_ADD_ITEM}-${data ? data.cartGroupID : ""}\n`);
-      this.io.emit(`${CartEvents.ACK_ADD_ITEM}-${data ? data.cartGroupID : ""}`, msg);
+      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_ADD_ITEM}-${data ? data.cartGroupID : ''}\n`);
+      this.io.emit(`${CartEvents.ACK_ADD_ITEM}-${data ? data.cartGroupID : ''}`, msg);
       // process.stdout.write(`[server](message):  ${msg}\n`);
     });
 
     this.mqHelper.subscribeMQP(QMethods.ACK_UPDATE_ITEM, (err, quename, msg: any) => {
       const data = (JSON.parse(msg) as IResponse).data;
-      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_UPDATE_ITEM}-${data ? data.cartGroupID : ""}\n`);
-      this.io.emit(`${CartEvents.ACK_UPDATE_ITEM}-${data ? data.cartGroupID : ""}`, msg);
+      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_UPDATE_ITEM}-${data ? data.cartGroupID : ''}\n`);
+      this.io.emit(`${CartEvents.ACK_UPDATE_ITEM}-${data ? data.cartGroupID : ''}`, msg);
 
       process.stdout.write(`[server](message):  ${msg}\n`);
     });
 
     this.mqHelper.subscribeMQP(QMethods.ACK_REMOVE_ITEM, (err, quename, msg: any) => {
       const data = (JSON.parse(msg) as IResponse).data;
-      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_REMOVE_ITEM}-${data ? data.cartGroupID : ""}\n`);
-      this.io.emit(`${CartEvents.ACK_REMOVE_ITEM}-${data ? data.cartGroupID : ""}`, msg);
+      process.stdout.write(`\nUSER-JOIN-${CartEvents.ACK_REMOVE_ITEM}-${data ? data.cartGroupID : ''}\n`);
+      this.io.emit(`${CartEvents.ACK_REMOVE_ITEM}-${data ? data.cartGroupID : ''}`, msg);
       process.stdout.write(`[server](message):  ${msg}\n`);
     });
   }
 
-  private configureCacheSetting(): void {}
-
   private httpServe(): void {
-    this._app.get("/menu", async (req: any, res: any) => {
+    this._app.get('/menu', async (req: any, res: any) => {
       try {
-        const menuUrl: string = "https://grain.com.sg/menu.json";
+        const menuUrl: string = 'https://grain.com.sg/menu.json';
         const cachedResult = await this.memoryCache.get(menuUrl);
         const result =
           cachedResult ||
@@ -173,12 +171,12 @@ export class GatewayServer {
           })).data;
 
         this.memoryCache.set(menuUrl, result.data, {
-          ttl: parseInt(process.env.TTL || "600", 600),
+          ttl: parseInt(process.env.TTL || '600', 600),
         });
 
         res.json(result);
       } catch (error) {
-        const { status = 500, statusText = "Grain API Error" } = error.response;
+        const { status = 500, statusText = 'Grain API Error' } = error.response;
         res.status(status).json({
           status,
           statusText,
@@ -186,7 +184,7 @@ export class GatewayServer {
       }
     });
 
-    this._app.post("/group", async (req: any, res: any) => {
+    this._app.post('/group', async (req: any, res: any) => {
       const payload = req.body;
       await this.mqHelper.publishMQP(QMethods.CREATE_GROUP, JSON.stringify(payload), (err, queueName, callBackmsg) => {
         res.status(200).send({ data: JSON.parse(callBackmsg) });

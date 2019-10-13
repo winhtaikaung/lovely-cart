@@ -26,6 +26,7 @@ function orderReducer(state: ContainerState = initialState, action: ContainerAct
       }
     case ActionTypes.CREATE_GROUP_SUCCESS:
       localStorage.setItem('groupID', (action.payload as IResponse).data!.cartGroupID)
+      localStorage.setItem('userID', (action.payload as IResponse).data!.users[0].user_id)
       return {
         response: action.payload,
         channelStatus: true,
@@ -60,6 +61,12 @@ function orderReducer(state: ContainerState = initialState, action: ContainerAct
         serverStatus: false,
       }
     case ActionTypes.ACK_REMOVE_ITEM:
+      return {
+        response: JSON.parse(action.payload),
+        channelStatus: true,
+        serverStatus: false,
+      }
+    case ActionTypes.ACK_USER_LEFT:
       return {
         response: JSON.parse(action.payload),
         channelStatus: true,

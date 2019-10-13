@@ -7,6 +7,7 @@ import {
   disconnectSocketServer,
   userAddItemCart,
   removeCartItem,
+  userLeftGroup,
 } from './actions'
 import { createStructuredSelector } from 'reselect'
 import { Dispatch } from 'redux'
@@ -39,22 +40,23 @@ const cartItem = {
   vertical_image_url:
     'https://storage.googleapis.com/spineproduction/uploads/recipe/vertical_image/611/benns_anaimalai__1_.jpg',
 }
-const GroupOrderView: React.FC<ContainerState> = props => {
-  const {
-    connectSocketServer,
-    createGroup,
-    userJoinCart,
-    userAddItemCart,
-    updateCartItem,
-    removeCartItem,
-    match,
-    disconnectSocketServer,
-  } = props
+const GroupOrderView: React.FC<ContainerState> = ({
+  connectSocketServer,
+  createGroup,
+  userJoinCart,
+  userAddItemCart,
+  updateCartItem,
+  removeCartItem,
+  match,
+  userLeftGroup,
+  disconnectSocketServer,
+}) => {
   if (match.params.groupID) {
     localStorage.setItem('groupID', match.params.groupID)
   }
   useEffect(() => {
     connectSocketServer()
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -79,6 +81,13 @@ const GroupOrderView: React.FC<ContainerState> = props => {
         }}
       >
         Join User
+      </button>
+      <button
+        onClick={() => {
+          userLeftGroup({ cartGroupID: match.params.groupID, user_id: localStorage.getItem('userID') })
+        }}
+      >
+        User Left
       </button>
 
       <button
@@ -147,9 +156,10 @@ const mapDispatchToProps = (dispatch: Dispatch) => ({
   createGroup: (callBack: (data: any, err: any) => void) => dispatch(createGroup(callBack)),
   userJoinCart: (user: IUser, callback: (data: any) => void) => dispatch(userJoinCart(user, callback)),
 
-  userAddItemCart: (user: ICartItem) => dispatch(userAddItemCart(user)),
-  updateCartItem: (user: ICartItem) => dispatch(updateCartItem(user)),
-  removeCartItem: (user: ICartItem) => dispatch(removeCartItem(user)),
+  userAddItemCart: (cartItem: ICartItem) => dispatch(userAddItemCart(cartItem)),
+  updateCartItem: (cartItem: ICartItem) => dispatch(updateCartItem(cartItem)),
+  removeCartItem: (cartItem: ICartItem) => dispatch(removeCartItem(cartItem)),
+  userLeftGroup: (cartItem: ICartItem) => dispatch(userLeftGroup(cartItem)),
   disconnectSocketServer: () => dispatch(disconnectSocketServer()),
 })
 

@@ -1,12 +1,12 @@
-import express from "express";
-import nanoid from "nanoid";
-import redis, { RedisClient } from "redis";
-import { createServer, Server } from "http";
-import { MQHelper } from "./helper/mq-async-helper";
-import { QMethods } from "./types/event";
-import { ICartGroup, IUser, ICartItem } from "./types/message";
+import express from 'express';
+import nanoid from 'nanoid';
+import redis, { RedisClient } from 'redis';
+import { createServer, Server } from 'http';
+import { MQHelper } from './helper/mq-async-helper';
+import { QMethods } from './types/event';
+import { ICartGroup, IUser, ICartItem } from './types/message';
 
-const { promisify } = require("util");
+const { promisify } = require('util');
 
 export class CartService {
   public static readonly PORT: number = 3001;
@@ -41,13 +41,13 @@ export class CartService {
 
   private createRedisConnection(): RedisClient {
     // create and connect redis client to local instance.
-    const redisHost = process.env.REDIS_HOST || "localhost";
-    const redisPort: number = parseInt(process.env.REDIS_PORT || "6379");
+    const redisHost = process.env.REDIS_HOST || 'localhost';
+    const redisPort: number = parseInt(process.env.REDIS_PORT || '6379');
     const client = redis.createClient(redisPort, redisHost);
 
     // echo redis errors to the console
-    client.on("error", err => {
-      console.log("Error " + err);
+    client.on('error', err => {
+      console.log('Error ' + err);
     });
     return client;
   }
@@ -63,7 +63,7 @@ export class CartService {
       cart = JSON.parse(cart) as ICartGroup;
       cart.users.push(user);
       await this._setRedisClient(user.cartGroupID, JSON.stringify(cart));
-      this.mqHelper.publishMQP(QMethods.ACK_USER_JOIN, JSON.stringify({ data: cart }));
+      this.mqHelper.publishMQP(QMethods.ACK_USER_JOIN, JSON.stringify({ data: cart, mutatedItem: user }));
     });
 
     this.mqHelper.subscribeMQP(QMethods.ADD_ITEM, async (err, queueName, callBackMessage) => {
@@ -73,7 +73,7 @@ export class CartService {
       cart = JSON.parse(cart) as ICartGroup;
       cart.cart_items.push(cartItem);
       await this._setRedisClient(cartItem.cartGroupID, JSON.stringify(cart));
-      this.mqHelper.publishMQP(QMethods.ACK_ADD_ITEM, JSON.stringify({ data: cart }));
+      this.mqHelper.publishMQP(QMethods.ACK_ADD_ITEM, JSON.stringify({ data: cart, mutatedItem: cartItem }));
     });
 
     this.mqHelper.subscribeMQP(QMethods.UPDATE_ITEM, async (err, queueName, callBackMessage) => {
@@ -92,7 +92,7 @@ export class CartService {
         }
       }
       await this._setRedisClient(cartItem.cartGroupID, JSON.stringify(cart));
-      this.mqHelper.publishMQP(QMethods.ACK_UPDATE_ITEM, JSON.stringify({ data: cart }));
+      this.mqHelper.publishMQP(QMethods.ACK_UPDATE_ITEM, JSON.stringify({ data: cart, mutatedItem: cartItem }));
     });
 
     this.mqHelper.subscribeMQP(QMethods.REMOVE_ITEM, async (err, queueName, callBackMessage) => {
@@ -105,7 +105,7 @@ export class CartService {
         : cart.cart_items;
       console.log(cartItem);
       await this._setRedisClient(cartItem.cartGroupID, JSON.stringify(cart));
-      this.mqHelper.publishMQP(QMethods.ACK_REMOVE_ITEM, JSON.stringify({ data: cart }));
+      this.mqHelper.publishMQP(QMethods.ACK_REMOVE_ITEM, JSON.stringify({ data: cart, mutatedItem: cartItem }));
     });
 
     this.mqHelper.subscribeMQP(QMethods.USER_LEFT, async (err, queueName, callBackMessage) => {
@@ -119,21 +119,7 @@ export class CartService {
         : cart.cart_items;
 
       await this._setRedisClient(user.cartGroupID, JSON.stringify(cart));
-      this.mqHelper.publishMQP(QMethods.ACK_USER_LEFT, JSON.stringify({ data: cart }));
-    });
-
-    this.mqHelper.subscribeMQP(QMethods.USER_LEFT, async (err, queueName, callBackMessage) => {
-      let user = JSON.parse(callBackMessage) as IUser;
-      let cart = await this._getRedisClient(user.cartGroupID);
-      cart = JSON.parse(cart) as ICartGroup;
-      const userExist = cart.users.some((item: IUser) => item.user_id === user.user_id && !user.is_admin);
-      cart.users = userExist ? cart.users.filter((item: IUser) => item.user_id !== user.user_id) : cart.users;
-      cart.cart_items = userExist
-        ? cart.cart_items.filter((item: ICartItem) => item.user_id !== user.user_id)
-        : cart.cart_items;
-
-      await this._setRedisClient(user.cartGroupID, JSON.stringify(cart));
-      this.mqHelper.publishMQP(QMethods.ACK_USER_LEFT, JSON.stringify({ data: cart }));
+      this.mqHelper.publishMQP(QMethods.ACK_USER_LEFT, JSON.stringify({ data: cart, mutatedItem: user }));
     });
 
     this.mqHelper.subscribeMQP(QMethods.DELETE_GROUP, async (err, queueName, callBackMessage) => {
@@ -146,7 +132,7 @@ export class CartService {
         await this._deleteRedisClient(user.cartGroupID);
         this.mqHelper.publishMQP(
           QMethods.ACK_DELETE_GROUP,
-          JSON.stringify({ message: "Order group has been Deleted" }),
+          JSON.stringify({ message: 'Order group has been Deleted' }),
         );
       }
     });

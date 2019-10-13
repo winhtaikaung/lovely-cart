@@ -21,7 +21,8 @@ export interface ICartGroup {
 }
 
 export interface IResponse {
-  data?: ICartGroup | IUser;
+  data?: any;
   message?: string;
   code?: number;
+  mutatedItem?: any;
 }

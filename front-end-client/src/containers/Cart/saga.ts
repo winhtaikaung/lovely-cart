@@ -77,6 +77,19 @@ const createSocketChannel = (socket: any) =>
       }
       emit(data)
     })
+
+    socket.on(`${ActionTypes.ACK_USER_LEFT}-${localStorage.getItem('groupID')}`, (data: any) => {
+      const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
+      const userExist = cartGroup.users.find(user => user.user_id === localStorage.getItem('userID'))
+      if (userExist) {
+        Notification({ type: 'info', message: 'User Left' })
+      } else {
+        Notification({ type: 'info', message: 'You have left the group!' })
+        localStorage.clear()
+      }
+      emit(data)
+    })
+
     return () => {
       socket.off(ActionTypes.USER_JOIN, (data: any) => {
         emit(data)
@@ -85,8 +98,10 @@ const createSocketChannel = (socket: any) =>
       socket.off(ActionTypes.ADD_ITEM, (data: any) => {
         emit(data)
       })
-
       socket.off(ActionTypes.UPDATE_ITEM, (data: any) => {
+        emit(data)
+      })
+      socket.off(ActionTypes.USER_LEFT, (data: any) => {
         emit(data)
       })
     }
@@ -128,6 +143,7 @@ const listenServerSaga = function*() {
     yield fork(addCartItem, socket)
     yield fork(updateCartItem, socket)
     yield fork(removeCartItem, socket)
+    yield fork(userLeftGroup, socket)
     yield put({ type: ActionTypes.SERVER_ON })
 
     while (true) {
@@ -136,6 +152,7 @@ const listenServerSaga = function*() {
       yield put({ type: ActionTypes.ACK_ADD_ITEM, payload })
       yield put({ type: ActionTypes.ACK_UPDATE_ITEM, payload })
       yield put({ type: ActionTypes.ACK_REMOVE_ITEM, payload })
+      yield put({ type: ActionTypes.ACK_USER_LEFT, payload })
     }
   } catch (error) {
     console.log(error)
@@ -188,6 +205,13 @@ export function* removeCartItem(socket: SocketIOClient.Socket) {
   while (true) {
     const { params } = yield take(ActionTypes.REMOVE_ITEM)
     socket.emit(ActionTypes.REMOVE_ITEM, params)
+  }
+}
+
+export function* userLeftGroup(socket: SocketIOClient.Socket) {
+  while (true) {
+    const { params } = yield take(ActionTypes.USER_LEFT)
+    socket.emit(ActionTypes.USER_LEFT, params)
   }
 }
 

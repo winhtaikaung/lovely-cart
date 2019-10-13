@@ -6,6 +6,7 @@ interface SocketEvents {
   type:
     | ActionTypes.CREATE_GROUP
     | ActionTypes.USER_JOIN
+    | ActionTypes.USER_LEFT
     | ActionTypes.ADD_ITEM
     | ActionTypes.UPDATE_ITEM
     | ActionTypes.REMOVE_ITEM
@@ -20,6 +21,7 @@ interface SocketEvents {
     | ActionTypes.ACK_ADD_ITEM
     | ActionTypes.ACK_UPDATE_ITEM
     | ActionTypes.ACK_REMOVE_ITEM
+    | ActionTypes.ACK_USER_LEFT
 
   payload: any
   params?: any
@@ -114,5 +116,13 @@ export const removeCartItem: (cartItem: ICartItem) => SocketEvents = (cartItem: 
     type: ActionTypes.REMOVE_ITEM,
     payload: null,
     params: cartItem,
+  }
+}
+
+export const userLeftGroup: (user: IUser) => SocketEvents = (user: IUser) => {
+  return {
+    type: ActionTypes.USER_LEFT,
+    payload: null,
+    params: user,
   }
 }
