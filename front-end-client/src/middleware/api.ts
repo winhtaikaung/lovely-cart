@@ -89,7 +89,6 @@ export function* commonSaga(action: any) {
         }
       }
       if (callback) {
-        console.log('CALLBACK_TRIGGERED')
         action.callback(response.data)
       }
 

@@ -5,6 +5,7 @@ import { IUser, ICartItem } from '../../types'
 interface SocketEvents {
   type:
     | ActionTypes.CREATE_GROUP
+    | ActionTypes.DELETE_GROUP
     | ActionTypes.FETCH_CART_GROUP
     | ActionTypes.USER_JOIN
     | ActionTypes.USER_LEFT
@@ -24,6 +25,7 @@ interface SocketEvents {
     | ActionTypes.ACK_REMOVE_ITEM
     | ActionTypes.ACK_USER_LEFT
     | ActionTypes.ACK_FETCH_CART_GROUP
+    | ActionTypes.ACK_DELETE_GROUP
 
   payload: any
   params?: any
@@ -40,6 +42,24 @@ interface CreateGroupActionTypes {
   types: [ActionTypes.CREATE_GROUP, ActionTypes.CREATE_GROUP_SUCCESS, ActionTypes.CREATE_GROUP_ERROR]
   callback?: (data: any, err: any) => void
 }
+
+interface GroupActionTypes {
+  type: ActionTypes.RESET_STORE
+  payload: any
+  params?: any
+  callback?: (data?: any) => void
+}
+
+export const resetStore: (resetCallback: (data?: any) => void) => GroupActionTypes = (
+  resetCallback: (data?: any) => void,
+) => ({
+  type: ActionTypes.RESET_STORE,
+  payload: null,
+  params: {
+    resetUrl: window.location.origin,
+  },
+  callback: resetCallback,
+})
 
 export const connectSocketServer: () => SocketEvents = () => ({
   type: ActionTypes.START_CHANNEL,
@@ -110,6 +130,14 @@ export const removeCartItem: (cartItem: ICartItem) => SocketEvents = (cartItem: 
 export const userLeftGroup: (user: IUser) => SocketEvents = (user: IUser) => {
   return {
     type: ActionTypes.USER_LEFT,
+    payload: null,
+    params: user,
+  }
+}
+
+export const deleteGroup: (user: IUser) => SocketEvents = (user: IUser) => {
+  return {
+    type: ActionTypes.DELETE_GROUP,
     payload: null,
     params: user,
   }

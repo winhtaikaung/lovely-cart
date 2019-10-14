@@ -5,7 +5,6 @@ import ActionTypes from './constants'
 export const initialState: ContainerState = {
   loading: false,
   error: false,
-  currentUser: '',
   userData: {
     menu: [],
   },
@@ -15,7 +14,6 @@ function appReducer(state: ContainerState = initialState, action: ContainerActio
   switch (action.type) {
     case ActionTypes.LOAD_MENU_ITEMS:
       return {
-        currentUser: state.currentUser,
         loading: true,
         error: false,
         userData: {
@@ -24,7 +22,6 @@ function appReducer(state: ContainerState = initialState, action: ContainerActio
       }
     case ActionTypes.LOAD_MENU_ITEMS_SUCCESS:
       return {
-        currentUser: action.payload,
         loading: false,
         error: state.error,
         userData: {

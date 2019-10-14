@@ -29,6 +29,14 @@ function orderReducer(state: ContainerState = initialState, action: ContainerAct
         serverStatus: false,
         loading: true,
       }
+    case ActionTypes.RESET_STORE:
+      return {
+        response: initialState.response,
+        channelStatus: true,
+        serverStatus: false,
+        loading: true,
+      }
+
     case ActionTypes.CREATE_GROUP_SUCCESS:
       localStorage.setItem('groupID', (action.payload as IResponse).data!.cartGroupID)
       localStorage.setItem('userID', (action.payload as IResponse).data!.users[0].user_id)
@@ -78,6 +86,12 @@ function orderReducer(state: ContainerState = initialState, action: ContainerAct
         serverStatus: false,
       }
     case ActionTypes.ACK_USER_LEFT:
+      return {
+        ...state,
+        channelStatus: true,
+        serverStatus: false,
+      }
+    case ActionTypes.ACK_DELETE_GROUP:
       return {
         ...state,
         channelStatus: true,

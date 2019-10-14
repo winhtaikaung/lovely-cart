@@ -8,6 +8,7 @@ const Notification = ({ type, message, description = '' }: notificationProps) =>
   return notification[type]({
     message: message,
     description: description,
+    duration: 2,
   })
 }
 export default Notification

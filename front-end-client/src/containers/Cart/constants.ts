@@ -17,6 +17,7 @@ enum ActionTypes {
   FETCH_CART_GROUP = 'fetch-cartgroup',
   USER_JOIN = 'user-join',
   USER_LEFT = 'user-left',
+  RESET_STORE = 'reset-store',
   ERROR = 'error',
 
   /* Acknowledge events */

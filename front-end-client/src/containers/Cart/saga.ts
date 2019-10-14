@@ -4,7 +4,7 @@ import { take, call, put, fork, race, cancelled, delay, all, takeLatest } from '
 import ActionTypes from './constants'
 import Notification from '../../utils/notification'
 import { commonSaga } from '../../middleware/api'
-import { IResponse, ICartGroup } from '../../types'
+import { IResponse, ICartGroup, IUser } from '../../types'
 import { selectLocalGroupID, selectLocalUserID } from './selectors'
 
 // wrapping functions for socket events (connect, disconnect, reconnect)
@@ -52,7 +52,6 @@ const createSocketChannel = (socket: any) =>
 
       emit(data)
     })
-    console.log('CREATE_SOCKET_CHANNEL', `${ActionTypes.ACK_ADD_ITEM}-${selectLocalGroupID()}`)
     socket.on(`${ActionTypes.ACK_ADD_ITEM}-${localGroupID}`, (data: any) => {
       // const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
       // const lastAddedItem = cartGroup.cart_items.pop()
@@ -62,7 +61,7 @@ const createSocketChannel = (socket: any) =>
       const cartGroup: IResponse = JSON.parse(data) as IResponse
       const updatedUser = cartGroup.mutatedItem.user_id
       if (updatedUser === localuserID) {
-        Notification({ type: 'success', message: 'Item successfully updated' })
+        Notification({ type: 'success', message: 'Item successfully added' })
       } else {
         Notification({ type: 'success', message: `${updatedUser} add ${cartGroup.mutatedItem.item.name} to cart` })
       }
@@ -101,6 +100,18 @@ const createSocketChannel = (socket: any) =>
     })
 
     socket.on(`${ActionTypes.ACK_FETCH_CART_GROUP}-${localGroupID}`, (data: any) => {
+      emit(data)
+    })
+    socket.on(`${ActionTypes.ACK_DELETE_GROUP}-${localGroupID}`, (data: any) => {
+      const user: IUser = JSON.parse(data) as IUser
+      if (user && user.is_admin) {
+        Notification({ type: 'info', message: 'Your Group has been deleted' })
+      } else {
+        localStorage.removeItem('userID')
+        localStorage.removeItem('groupID')
+        Notification({ type: 'info', message: 'Your Group has been deleted by admin' })
+      }
+
       emit(data)
     })
 
@@ -145,6 +156,7 @@ const listenServerSaga = function*() {
     yield fork(removeCartItem, socket)
     yield fork(userLeftGroup, socket)
     yield fork(fetchCartGroup, socket)
+    yield fork(deleteGroup, socket)
     yield put({ type: ActionTypes.SERVER_ON })
 
     while (true) {
@@ -155,6 +167,7 @@ const listenServerSaga = function*() {
       yield put({ type: ActionTypes.ACK_REMOVE_ITEM, payload })
       yield put({ type: ActionTypes.ACK_USER_LEFT, payload })
       yield put({ type: ActionTypes.ACK_FETCH_CART_GROUP, payload })
+      yield put({ type: ActionTypes.ACK_DELETE_GROUP, payload })
     }
   } catch (error) {
     console.log(error)
@@ -184,7 +197,6 @@ export function* userJoin(socket: SocketIOClient.Socket) {
   while (true) {
     const { params, callback } = yield take(ActionTypes.USER_JOIN)
     socket.emit(ActionTypes.USER_JOIN, params)
-    console.log('USER_JOIN_SAGA', params)
     callback(params)
   }
 }
@@ -214,6 +226,13 @@ export function* userLeftGroup(socket: SocketIOClient.Socket) {
   while (true) {
     const { params } = yield take(ActionTypes.USER_LEFT)
     socket.emit(ActionTypes.USER_LEFT, params)
+  }
+}
+
+export function* deleteGroup(socket: SocketIOClient.Socket) {
+  while (true) {
+    const { params } = yield take(ActionTypes.DELETE_GROUP)
+    socket.emit(ActionTypes.DELETE_GROUP, params)
   }
 }
 export function* fetchCartGroup(socket: SocketIOClient.Socket) {
