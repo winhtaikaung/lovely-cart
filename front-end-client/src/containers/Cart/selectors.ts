@@ -56,6 +56,14 @@ const makeSelectMutatedItem = () =>
     },
   )
 
+const makeSelectDeletedCode = () =>
+  createSelector(
+    selectGlobal,
+    globalState => {
+      return globalState.response.code
+    },
+  )
+
 const makeSelectChannelStatus = () =>
   createSelector(
     selectGlobal,
@@ -97,5 +105,6 @@ export {
   selectLocalUserID,
   selectLocalGroupID,
   makeSelectLoading,
+  makeSelectDeletedCode,
   makeSelectError,
 }

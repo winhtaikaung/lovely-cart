@@ -4,11 +4,11 @@ import { take, call, put, fork, race, cancelled, delay, all, takeLatest } from '
 import ActionTypes from './constants'
 import Notification from '../../utils/notification'
 import { commonSaga } from '../../middleware/api'
-import { IResponse, ICartGroup, IUser } from '../../types'
+import { IResponse, ICartGroup, IUser, ICartItem } from '../../types'
 import { selectLocalGroupID, selectLocalUserID } from './selectors'
 
 // wrapping functions for socket events (connect, disconnect, reconnect)
-const socketServerURL = 'http://localhost:3002'
+const socketServerURL = process.env.API_URL || 'http://localhost:3002'
 
 let socket: SocketIOClient.Socket
 const connect = () => {
@@ -44,26 +44,25 @@ const createSocketChannel = (socket: any) =>
     const localGroupID = selectLocalGroupID()
     const localuserID = selectLocalUserID()
     socket.on(`${ActionTypes.ACK_USER_JOIN}-${selectLocalGroupID()}`, (data: any) => {
-      const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
-      const lastJoinUser = cartGroup.users.pop()
-      if (lastJoinUser && lastJoinUser.user_id !== localuserID) {
-        Notification({ type: 'success', message: `${lastJoinUser.user_id} joined to group` })
+      const groupResponse: IResponse = JSON.parse(data) as IResponse
+      const lastJoinedUser: IUser = groupResponse.mutatedItem
+      if (lastJoinedUser && localuserID && lastJoinedUser.user_id !== localuserID) {
+        Notification({ type: 'success', message: `${lastJoinedUser.user_id} joined to group` })
       }
 
       emit(data)
     })
     socket.on(`${ActionTypes.ACK_ADD_ITEM}-${localGroupID}`, (data: any) => {
-      // const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
-      // const lastAddedItem = cartGroup.cart_items.pop()
-      // if (lastAddedItem && lastAddedItem.user_id !== localuserID) {
-      //   Notification({ type: 'success', message: 'New Item added' })
-      // }
-      const cartGroup: IResponse = JSON.parse(data) as IResponse
-      const updatedUser = cartGroup.mutatedItem.user_id
-      if (updatedUser === localuserID) {
-        Notification({ type: 'success', message: 'Item successfully added' })
+      const groupResponse: IResponse = JSON.parse(data) as IResponse
+      const cartItem: ICartItem = groupResponse.mutatedItem
+
+      if (cartItem && localuserID && cartItem.user_id !== localuserID) {
+        Notification({
+          type: 'success',
+          message: `${cartItem.user_id} added ${cartItem.item.name} to group `,
+        })
       } else {
-        Notification({ type: 'success', message: `${updatedUser} add ${cartGroup.mutatedItem.item.name} to cart` })
+        Notification({ type: 'success', message: 'Item successfully added' })
       }
 
       emit(data)
@@ -89,9 +88,9 @@ const createSocketChannel = (socket: any) =>
 
     socket.on(`${ActionTypes.ACK_USER_LEFT}-${localGroupID}`, (data: any) => {
       const cartGroup: ICartGroup = (JSON.parse(data) as IResponse).data
-      const userExist = cartGroup.users.find(user => user.user_id === localuserID)
-      if (userExist) {
-        Notification({ type: 'info', message: 'User Left' })
+      const leftUser = cartGroup.users.find(user => user.user_id === localuserID)
+      if (leftUser) {
+        Notification({ type: 'info', message: `User ${leftUser.user_id} has left the group` })
       } else {
         Notification({ type: 'info', message: 'You have left the group!' })
         localStorage.clear()
@@ -103,13 +102,18 @@ const createSocketChannel = (socket: any) =>
       emit(data)
     })
     socket.on(`${ActionTypes.ACK_DELETE_GROUP}-${localGroupID}`, (data: any) => {
-      const user: IUser = JSON.parse(data) as IUser
-      if (user && user.is_admin) {
-        Notification({ type: 'info', message: 'Your Group has been deleted' })
-      } else {
-        localStorage.removeItem('userID')
-        localStorage.removeItem('groupID')
-        Notification({ type: 'info', message: 'Your Group has been deleted by admin' })
+      const response: IResponse = JSON.parse(data) as IResponse
+      if (response && response.mutatedItem) {
+        const user: IUser = response.mutatedItem
+        if (user.user_id === localuserID && user.is_admin) {
+          Notification({ type: 'info', message: 'Your Group has been deleted' })
+        } else {
+          localStorage.removeItem('userID')
+          localStorage.removeItem('groupID')
+
+          Notification({ type: 'info', message: 'Your Group has been deleted by admin' })
+          // window.location.href = window.location.origin
+        }
       }
 
       emit(data)

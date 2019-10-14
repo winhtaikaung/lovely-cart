@@ -25,6 +25,7 @@ import {
   makeSelectChannelStatus,
   makeSelectLocalGroupID,
   makeSelectLocalUserID,
+  makeSelectDeletedCode,
 } from './selectors'
 import CartItemPanel from '../../components/cart-item-panel'
 import { GroupActionContainer } from '../../components/cart-item-panel.style'
@@ -46,6 +47,7 @@ const GroupOrderView: React.FC<ContainerState> = ({
   resetStore,
   deleteGroup,
   history,
+  deletedCode,
   localCartGroupID,
 }) => {
   if (match.params.groupID) {
@@ -58,14 +60,17 @@ const GroupOrderView: React.FC<ContainerState> = ({
   if (localCartGroupID && localUserID && !response.data) {
     fetchCartGroup({ cartGroupID: localCartGroupID, user_id: localUserID } as IUser)
   }
+  // if (deletedCode && deletedCode === 404) {
+  //   localStorage.removeItem('groupID')
+  // }
   const userExist = users.some((user: IUser) => user.user_id === localUserID)
   const isAdmin = users.some((user: IUser) => user.user_id === localUserID && user.is_admin)
+
   return (
     <>
       {userExist && (
         <>
           <CartItemPanel cartItems={cartItems} users={users} />
-
           <GroupActionContainer>
             {localCartGroupID && (
               <>
@@ -118,6 +123,7 @@ const GroupOrderView: React.FC<ContainerState> = ({
                     userJoinCart({ cartGroupID: match.params.groupID, user_id: userID }, (params: any) => {
                       localStorage.setItem('userID', params.user_id)
                     })
+                    // history.push('/')
                   } else {
                     createGroup((data: any, err: any) => {
                       disconnectSocketServer()
@@ -130,7 +136,7 @@ const GroupOrderView: React.FC<ContainerState> = ({
                 {!localCartGroupID && <>Create Group</>}
               </GroupActionButton>
             </Col>
-            {match.params.groupID && (
+            {match.params.groupID && !deletedCode && (
               <Col span={12}>
                 <GroupActionButton
                   type="primary"
@@ -156,12 +162,10 @@ const mapDispatchToProps = (dispatch: Dispatch) => ({
   connectSocketServer: () => dispatch(connectSocketServer()),
   createGroup: (callBack: (data: any, err: any) => void) => dispatch(createGroup(callBack)),
   userJoinCart: (user: IUser, callback: (data: any) => void) => dispatch(userJoinCart(user, callback)),
-
   userLeftGroup: (cartItem: ICartItem) => dispatch(userLeftGroup(cartItem)),
   deleteGroup: (user: IUser) => dispatch(deleteGroup(user)),
   disconnectSocketServer: () => dispatch(disconnectSocketServer()),
   fetchCartGroup: (user: IUser) => dispatch(fetchCartGroup(user)),
-
   resetStore: (resetCallback: (data?: any) => void) => dispatch(resetStore(resetCallback)),
 })
 
@@ -174,6 +178,7 @@ const mapStateToProps = createStructuredSelector({
   response: makeSelectResponse(),
   localCartGroupID: makeSelectLocalGroupID(),
   localUserID: makeSelectLocalUserID(),
+  deletedCode: makeSelectDeletedCode(),
 })
 
 export default withRouter(

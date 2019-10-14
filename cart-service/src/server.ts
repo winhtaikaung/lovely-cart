@@ -59,6 +59,7 @@ export class CartService {
 
     this.mqHelper.subscribeMQP(QMethods.FETCH_CART_GROUP, async callBackMessage => {
       let cart = await this._getRedisClient((JSON.parse(callBackMessage) as IUser).cartGroupID);
+      console.log((JSON.parse(callBackMessage) as IUser).cartGroupID);
       if (cart) {
         cart = JSON.parse(cart) as ICartGroup;
         this.mqHelper.publishMQP(QMethods.ACK_FETCH_CART_GROUP, JSON.stringify({ data: cart, mutatedItem: null }));
@@ -138,7 +139,7 @@ export class CartService {
         await this._deleteRedisClient(user.cartGroupID);
         this.mqHelper.publishMQP(
           QMethods.ACK_DELETE_GROUP,
-          JSON.stringify({ data: null, message: 'Order group has been Deleted', mutatedItem: user }),
+          JSON.stringify({ data: null, code: 404, message: 'Order group has been Deleted', mutatedItem: user }),
         );
       }
     });

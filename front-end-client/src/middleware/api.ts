@@ -10,7 +10,7 @@ export interface queryMethod {
 
 const callApi = ({
   endpoint = undefined,
-  rootUrl = 'http://localhost:3002',
+  rootUrl = process.env.API_URL || 'http://localhost:3002',
   method = '',
   params = undefined,
   headers = undefined,
