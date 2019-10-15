@@ -63,6 +63,13 @@ const makeSelectDeletedCode = () =>
       return globalState.response.code
     },
   )
+const makeSelectDeletedMessage = () =>
+  createSelector(
+    selectGlobal,
+    globalState => {
+      return globalState.response.message
+    },
+  )
 
 const makeSelectChannelStatus = () =>
   createSelector(
@@ -106,5 +113,6 @@ export {
   selectLocalGroupID,
   makeSelectLoading,
   makeSelectDeletedCode,
+  makeSelectDeletedMessage,
   makeSelectError,
 }

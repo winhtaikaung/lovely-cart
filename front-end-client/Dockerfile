@@ -12,7 +12,7 @@ RUN mv /tmp/node_modules /app
 
 COPY . /app
 
-RUN npm run tsc
-EXPOSE 3001
+RUN npm run build
+EXPOSE 3000
 
-CMD ["node","./build/index.js"]
+CMD ["./node_modules/serve/bin/serve.js", "./build" ,"-p" ,"3000"]

@@ -1,5 +1,5 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -22,7 +22,7 @@ spec:
         run: cart
     spec:
       containers:
-        - image: cart:v1
+        - image: cart-service:v1
           imagePullPolicy: IfNotPresent
           name: cart
           envFrom:

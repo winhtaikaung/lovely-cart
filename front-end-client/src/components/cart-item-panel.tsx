@@ -38,7 +38,7 @@ const CartItemPanel: React.FC<ICartItemPanel> = ({ cartItems, users, localUserID
                   }
                   key={`${userItem.user_id}`}
                 >
-                  {cartItems && cartItems.length !== 0 && (
+                  {cartItems && (
                     <List
                       itemLayout="horizontal"
                       dataSource={cartItems.filter(item => item.user_id === userItem.user_id)}

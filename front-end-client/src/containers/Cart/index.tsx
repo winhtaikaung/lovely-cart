@@ -26,11 +26,13 @@ import {
   makeSelectLocalGroupID,
   makeSelectLocalUserID,
   makeSelectDeletedCode,
+  makeSelectDeletedMessage,
 } from './selectors'
 import CartItemPanel from '../../components/cart-item-panel'
 import { GroupActionContainer } from '../../components/cart-item-panel.style'
 import { GroupActionButton, CreateGroupContainer } from './cart.style'
 import { Row, Col } from 'antd'
+import ActionTypes from './constants'
 
 const GroupOrderView: React.FC<ContainerState> = ({
   connectSocketServer,
@@ -46,6 +48,7 @@ const GroupOrderView: React.FC<ContainerState> = ({
   localUserID,
   resetStore,
   deleteGroup,
+  deletedMessage,
   history,
   deletedCode,
   localCartGroupID,
@@ -60,9 +63,10 @@ const GroupOrderView: React.FC<ContainerState> = ({
   if (localCartGroupID && localUserID && !response.data) {
     fetchCartGroup({ cartGroupID: localCartGroupID, user_id: localUserID } as IUser)
   }
-  // if (deletedCode && deletedCode === 404) {
-  //   localStorage.removeItem('groupID')
-  // }
+  if (deletedCode && deletedCode === 404 && deletedMessage === ActionTypes.ACK_DELETE_GROUP) {
+    localStorage.removeItem('groupID')
+    window.location.href = window.location.origin
+  }
   const userExist = users.some((user: IUser) => user.user_id === localUserID)
   const isAdmin = users.some((user: IUser) => user.user_id === localUserID && user.is_admin)
 
@@ -123,7 +127,6 @@ const GroupOrderView: React.FC<ContainerState> = ({
                     userJoinCart({ cartGroupID: match.params.groupID, user_id: userID }, (params: any) => {
                       localStorage.setItem('userID', params.user_id)
                     })
-                    // history.push('/')
                   } else {
                     createGroup((data: any, err: any) => {
                       disconnectSocketServer()
@@ -179,6 +182,7 @@ const mapStateToProps = createStructuredSelector({
   localCartGroupID: makeSelectLocalGroupID(),
   localUserID: makeSelectLocalUserID(),
   deletedCode: makeSelectDeletedCode(),
+  deletedMessage: makeSelectDeletedMessage(),
 })
 
 export default withRouter(

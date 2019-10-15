@@ -7,9 +7,9 @@ metadata:
   namespace: default
 spec:
   ports:
-    - port: 3001
+    - port: 3002
       protocol: TCP
-      targetPort: 3001
+      targetPort: 3002
       nodePort: 30001
   selector:
     run: api-gateway

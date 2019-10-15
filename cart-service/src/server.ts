@@ -139,7 +139,7 @@ export class CartService {
         await this._deleteRedisClient(user.cartGroupID);
         this.mqHelper.publishMQP(
           QMethods.ACK_DELETE_GROUP,
-          JSON.stringify({ data: null, code: 404, message: 'Order group has been Deleted', mutatedItem: user }),
+          JSON.stringify({ data: null, code: 404, message: QMethods.ACK_DELETE_GROUP, mutatedItem: user }),
         );
       }
     });
