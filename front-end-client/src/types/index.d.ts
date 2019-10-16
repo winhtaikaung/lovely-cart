@@ -10,6 +10,12 @@ export interface InjectedStore extends Store {
   runSaga(saga: (() => IterableIterator<any>) | undefined, args: any | undefined): any
 }
 
+declare global {
+  interface Window {
+    __API_URL__: string
+  }
+}
+
 export interface InjectReducerParams {
   key: keyof ApplicationRootState
   reducer: Reducer<any, any>

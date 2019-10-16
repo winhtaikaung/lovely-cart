@@ -25,8 +25,9 @@ import {
   makeSelectChannelStatus,
   makeSelectLocalGroupID,
   makeSelectLocalUserID,
-  makeSelectDeletedCode,
-  makeSelectDeletedMessage,
+  makeSelectResponseCode,
+  makeSelectMessage,
+  makeSelectCartGroupID,
 } from './selectors'
 import CartItemPanel from '../../components/cart-item-panel'
 import { GroupActionContainer } from '../../components/cart-item-panel.style'
@@ -45,12 +46,14 @@ const GroupOrderView: React.FC<ContainerState> = ({
   response,
   fetchCartGroup,
   users,
+  cartGroupID,
   localUserID,
   resetStore,
   deleteGroup,
-  deletedMessage,
+  responseMessage,
   history,
-  deletedCode,
+  mutatedItem,
+  responseCode,
   localCartGroupID,
 }) => {
   if (match.params.groupID) {
@@ -60,13 +63,17 @@ const GroupOrderView: React.FC<ContainerState> = ({
     connectSocketServer()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  if (localCartGroupID && localUserID && !response.data) {
-    fetchCartGroup({ cartGroupID: localCartGroupID, user_id: localUserID } as IUser)
+
+  if ((localCartGroupID || cartGroupID) && !response.data) {
+    fetchCartGroup({ cartGroupID: localCartGroupID || cartGroupID, user_id: localUserID } as IUser)
   }
-  if (deletedCode && deletedCode === 404 && deletedMessage === ActionTypes.ACK_DELETE_GROUP) {
+
+  if (responseCode && responseCode === 404 && responseMessage === ActionTypes.ACK_DELETE_GROUP) {
     localStorage.removeItem('groupID')
+    localStorage.removeItem('userID')
     window.location.href = window.location.origin
   }
+
   const userExist = users.some((user: IUser) => user.user_id === localUserID)
   const isAdmin = users.some((user: IUser) => user.user_id === localUserID && user.is_admin)
 
@@ -139,7 +146,7 @@ const GroupOrderView: React.FC<ContainerState> = ({
                 {!localCartGroupID && <>Create Group</>}
               </GroupActionButton>
             </Col>
-            {match.params.groupID && !deletedCode && (
+            {match.params.groupID && !responseCode && (
               <Col span={12}>
                 <GroupActionButton
                   type="primary"
@@ -179,10 +186,11 @@ const mapStateToProps = createStructuredSelector({
   originalResponse: makeSelectResponse(),
   channelStatus: makeSelectChannelStatus(),
   response: makeSelectResponse(),
+  cartGroupID: makeSelectCartGroupID(),
   localCartGroupID: makeSelectLocalGroupID(),
   localUserID: makeSelectLocalUserID(),
-  deletedCode: makeSelectDeletedCode(),
-  deletedMessage: makeSelectDeletedMessage(),
+  responseCode: makeSelectResponseCode(),
+  responseMessage: makeSelectMessage(),
 })
 
 export default withRouter(

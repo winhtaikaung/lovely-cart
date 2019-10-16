@@ -56,14 +56,14 @@ const makeSelectMutatedItem = () =>
     },
   )
 
-const makeSelectDeletedCode = () =>
+const makeSelectResponseCode = () =>
   createSelector(
     selectGlobal,
     globalState => {
       return globalState.response.code
     },
   )
-const makeSelectDeletedMessage = () =>
+const makeSelectMessage = () =>
   createSelector(
     selectGlobal,
     globalState => {
@@ -112,7 +112,7 @@ export {
   selectLocalUserID,
   selectLocalGroupID,
   makeSelectLoading,
-  makeSelectDeletedCode,
-  makeSelectDeletedMessage,
+  makeSelectResponseCode,
+  makeSelectMessage,
   makeSelectError,
 }

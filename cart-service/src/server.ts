@@ -59,7 +59,6 @@ export class CartService {
 
     this.mqHelper.subscribeMQP(QMethods.FETCH_CART_GROUP, async callBackMessage => {
       let cart = await this._getRedisClient((JSON.parse(callBackMessage) as IUser).cartGroupID);
-      console.log((JSON.parse(callBackMessage) as IUser).cartGroupID);
       if (cart) {
         cart = JSON.parse(cart) as ICartGroup;
         this.mqHelper.publishMQP(QMethods.ACK_FETCH_CART_GROUP, JSON.stringify({ data: cart, mutatedItem: null }));

@@ -9,6 +9,7 @@ import { createStructuredSelector } from 'reselect'
 import { connect } from 'react-redux'
 import nanoid from 'nanoid'
 import { makeSelectLocalGroupID, makeSelectLocalUserID } from '../containers/Cart/selectors'
+import { ButtonRow } from './menu-card.style'
 const { Meta } = Card
 
 interface CardType {
@@ -26,11 +27,12 @@ const MenuCard: React.FC<CardType> = ({ item: menuItem, userAddItemCart, localCa
       actions={[
         <>
           <Row gutter={16} type="flex" justify="start" align="middle">
-            <Col span={6}>
+            <Col span={24}>
               <h3>$ {menuItem.price}</h3>
             </Col>
-
-            <Col span={8}>
+          </Row>
+          <ButtonRow gutter={16} type="flex" justify="center" align="middle">
+            <Col span={12}>
               <Input
                 type="number"
                 onChange={e => setOrderCount(e.target.value)}
@@ -38,8 +40,7 @@ const MenuCard: React.FC<CardType> = ({ item: menuItem, userAddItemCart, localCa
                 value={orderCount}
               />
             </Col>
-
-            <Col span={6}>
+            <Col span={12}>
               <Button
                 type="primary"
                 onClick={() =>
@@ -58,7 +59,8 @@ const MenuCard: React.FC<CardType> = ({ item: menuItem, userAddItemCart, localCa
                 Add to cart
               </Button>
             </Col>
-          </Row>
+          </ButtonRow>
+          <Row gutter={16} type="flex" justify="start" align="middle"></Row>
         </>,
       ]}
     >

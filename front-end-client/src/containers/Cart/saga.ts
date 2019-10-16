@@ -8,7 +8,7 @@ import { IResponse, ICartGroup, IUser, ICartItem } from '../../types'
 import { selectLocalGroupID, selectLocalUserID } from './selectors'
 
 // wrapping functions for socket events (connect, disconnect, reconnect)
-const socketServerURL = process.env.API_URL || 'http://localhost:3002'
+const socketServerURL = window.__API_URL__ || 'http://localhost:3002'
 
 let socket: SocketIOClient.Socket
 const connect = () => {
