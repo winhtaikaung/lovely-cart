@@ -4,9 +4,9 @@
 
 **Prerequesties**
 
-- Docker- to install databases on the fly and expose out to host
+- [Docker](https://docs.docker.com/docker-for-windows/install/) - to install databases on the fly and expose out to host
   machine
-- Minikube-to spin up all the app inside the single kubernetes
+- [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) - to spin up all the app inside the single kubernetes
   cluster
 
 Once you cloned the project
@@ -18,13 +18,17 @@ To kick start the project then run
 
 At the end of excution you will see an url to access the app
 
-Then to update after the code changes run
+To update after the code changes run
 
     make update
 
-Then to remove all the resources from both minikube and docker run
+To remove all the resources from both minikube and docker run
 
     make destroy
+
+To stop all the database and rabbit mq
+
+    make stop
 
 Testing
 
