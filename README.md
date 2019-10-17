@@ -9,6 +9,10 @@
 - [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) - to spin up all the app inside the single kubernetes
   cluster
 
+Before we run make commands, we need to start the minikube with following command
+
+    minikube start
+
 Once you cloned the project
 You can see the Makefile at the root level of the cloned project folder
 
