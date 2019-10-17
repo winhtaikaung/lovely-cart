@@ -52,7 +52,6 @@ const GroupOrderView: React.FC<ContainerState> = ({
   deleteGroup,
   responseMessage,
   history,
-  mutatedItem,
   responseCode,
   localCartGroupID,
 }) => {
