@@ -15,7 +15,7 @@ interface ICartItemPanel {
   users: IUser[]
   localUserID: string
 }
-const CartItemPanel: React.FC<ICartItemPanel> = ({ cartItems, users, localUserID }) => {
+export const CartItemPanel: React.FC<ICartItemPanel> = ({ cartItems, users, localUserID }) => {
   return (
     <>
       <PanelContainer>
@@ -24,6 +24,7 @@ const CartItemPanel: React.FC<ICartItemPanel> = ({ cartItems, users, localUserID
             return (
               <Collapse
                 key={index}
+                data-testid="collapse-panel"
                 defaultActiveKey={[`${localUserID}`]}
                 bordered={false}
                 expandIconPosition="right"
@@ -43,7 +44,7 @@ const CartItemPanel: React.FC<ICartItemPanel> = ({ cartItems, users, localUserID
                       itemLayout="horizontal"
                       dataSource={cartItems.filter(item => item.user_id === userItem.user_id)}
                       renderItem={(item: ICartItem) => (
-                        <List.Item>
+                        <List.Item data-testid="cart-item">
                           <List.Item.Meta
                             avatar={<Avatar size="large" shape="square" src={item.item.retina_image_url} />}
                             title={

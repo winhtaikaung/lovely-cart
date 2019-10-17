@@ -17,7 +17,7 @@ interface CardType {
   localCartGroupID: string
   userAddItemCart: (cartItem: ICartItem) => void
 }
-const MenuCard: React.FC<CardType> = ({ item: menuItem, userAddItemCart, localCartGroupID }) => {
+export const MenuCard: React.FC<CardType> = ({ item: menuItem, userAddItemCart, localCartGroupID }) => {
   const [orderCount, setOrderCount] = React.useState<string>('1')
   return (
     <Card
@@ -26,7 +26,7 @@ const MenuCard: React.FC<CardType> = ({ item: menuItem, userAddItemCart, localCa
       cover={<img alt={menuItem.name} src={menuItem.retina_image_url} />}
       actions={[
         <>
-          <Row gutter={16} type="flex" justify="start" align="middle">
+          <Row data-testid="menu-card-price" gutter={16} type="flex" justify="start" align="middle">
             <Col span={24}>
               <h3>$ {menuItem.price}</h3>
             </Col>
@@ -42,17 +42,20 @@ const MenuCard: React.FC<CardType> = ({ item: menuItem, userAddItemCart, localCa
             </Col>
             <Col span={12}>
               <Button
+                data-testid="menu-card-add-button"
                 type="primary"
-                onClick={() =>
-                  userAddItemCart({
-                    cartGroupID: localCartGroupID || '',
-                    user_id: localStorage.getItem('userID') || '',
-                    item_id: nanoid(),
-                    count: parseInt(orderCount),
-                    category: menuItem.category,
-                    item: menuItem,
-                  })
-                }
+                onClick={() => {
+                  if (userAddItemCart) {
+                    userAddItemCart({
+                      cartGroupID: localCartGroupID || '',
+                      user_id: localStorage.getItem('userID') || '',
+                      item_id: nanoid(),
+                      count: parseInt(orderCount),
+                      category: menuItem.category,
+                      item: menuItem,
+                    })
+                  }
+                }}
                 disabled={orderCount && orderCount !== '0' ? false : true}
                 icon="shopping-cart"
               >
